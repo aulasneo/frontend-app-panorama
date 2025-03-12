@@ -50,7 +50,7 @@
     "@mui/material": "^5.15.15",
     "@openedx/paragon": "^22.0.0",
     "amazon-quicksight-embedding-sdk": "^2.6.0",
-    "axios": "^1.7.5",
+    "axios": "^1.8.2",
     "core-js": "3.36.1",
     "i18next": "^23.11.2",
     "i18next-http-backend": "^2.5.0",
