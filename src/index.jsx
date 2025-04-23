@@ -9,7 +9,7 @@ import ReactDOM from 'react-dom';
 import { Helmet } from 'react-helmet';
 
 import Header from '@edx/frontend-component-header';
-import Footer from '@edx/frontend-component-footer';
+import FooterSlot from '@openedx/frontend-slot-footer';
 import messages from './i18n';
 import AppPanorama from './AppPanorama';
 
@@ -23,7 +23,7 @@ subscribe(APP_READY, () => {
       </Helmet>
       <Header />
       <AppPanorama />
-      <Footer />
+      <FooterSlot />
     </AppProvider>,
     document.getElementById('root'),
   );
