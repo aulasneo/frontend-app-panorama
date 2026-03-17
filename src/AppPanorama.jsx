@@ -3,10 +3,7 @@ import { DashboardTypeProvider } from './components/DashboardContext';
 import Panels from './components/Panels/Panels';
 import Home from './components/Home/Home';
 
-
-const AppPanorama = () => {
-
-  return (
+const AppPanorama = () => (
   <main>
     <div className="content-panorama">
       <DashboardTypeProvider>
@@ -17,7 +14,6 @@ const AppPanorama = () => {
       </DashboardTypeProvider>
     </div>
   </main>
-  )
-};
+);
 
 export default AppPanorama;

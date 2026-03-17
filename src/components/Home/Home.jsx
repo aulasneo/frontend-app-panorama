@@ -20,7 +20,7 @@ const Home = () => {
     <div className="dashboard" id="dashboard">
       <EmbedHome />
       <div className="framesContainerHome" id="framesContainerHome">
-        <iframe className="homes-iframe" src={iframeSrc} title="Home Mode"></iframe>
+        <iframe className="homes-iframe" src={iframeSrc} title="Home Mode" />
       </div>
     </div>
   );
