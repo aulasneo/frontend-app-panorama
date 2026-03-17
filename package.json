@@ -26,6 +26,9 @@
   },
   "author": "edX",
   "license": "AGPL-3.0",
+  "engines": {
+    "node": ">=20.12.0"
+  },
   "homepage": "https://github.com/openedx/frontend-app-panorama#readme",
   "publishConfig": {
     "access": "public"
@@ -35,9 +38,9 @@
   },
   "dependencies": {
     "@edx/brand": "npm:@openedx/brand-openedx@^1.2.2",
-    "@edx/frontend-component-header": "^5.8.0",
-    "@edx/frontend-platform": "^8.0.0",
-    "@edx/openedx-atlas": "^0.6.0",
+    "@edx/frontend-component-header": "^6.2.0",
+    "@edx/frontend-platform": "^8.3.1",
+    "@edx/openedx-atlas": "^0.7.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@fortawesome/fontawesome-svg-core": "1.2.36",
@@ -46,19 +49,18 @@
     "@fortawesome/free-solid-svg-icons": "5.15.4",
     "@fortawesome/react-fontawesome": "0.2.0",
     "@mui/material": "^5.15.15",
-    "@openedx/paragon": "^22.0.0",
-    "@openedx/frontend-build": "14.1.2",
+    "@openedx/paragon": "^23.4.5",
+    "@openedx/frontend-build": "^14.5.0",
     "@openedx/frontend-slot-footer": "^1.0.2",
-    "@openedx/frontend-plugin-framework": "^1.2.1",
+    "@openedx/frontend-plugin-framework": "^1.7.0",
     "amazon-quicksight-embedding-sdk": "^2.6.0",
-    "axios": "^1.8.2",
+    "axios": "^1.7.5",
     "core-js": "3.36.1",
     "i18next": "^23.11.2",
     "i18next-http-backend": "^2.5.0",
     "prop-types": "15.8.1",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-helmet": "^6.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-i18next": "^14.1.0",
     "react-icons": "^5.1.0",
     "react-redux": "7.2.9",
@@ -71,7 +73,6 @@
     "@edx/browserslist-config": "^1.1.1",
     "@edx/reactifex": "^2.1.1",
     "glob": "7.2.3",
-    "html-webpack-plugin": "^5.6.2",
     "husky": "7.0.4",
     "jest": "29.7.0"
   }

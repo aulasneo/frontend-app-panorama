@@ -1,9 +1,9 @@
-import { useState, useEffect, useContext } from "react";
-import { createEmbeddingContext } from "amazon-quicksight-embedding-sdk";
-import { AppContext } from "@edx/frontend-platform/react";
-import { getAuthenticatedHttpClient } from "@edx/frontend-platform/auth";
-import { camelCaseObject } from "@edx/frontend-platform";
-import { DashboardTypeContext } from "./DashboardContext";
+import { useState, useEffect, useContext } from 'react';
+import { createEmbeddingContext } from 'amazon-quicksight-embedding-sdk';
+import { AppContext } from '@edx/frontend-platform/react';
+import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { camelCaseObject } from '@edx/frontend-platform';
+import { DashboardTypeContext } from './DashboardContext';
 
 const Embed = () => {
   const {
@@ -18,20 +18,20 @@ const Embed = () => {
 
   const { config, authenticatedUser } = useContext(AppContext);
   const [response, setResponse] = useState(null);
-  const [dashboardContainers, setDashboardContainers] = useState({});
 
   // ==========================================================
   // GET USER ROLE
   // ==========================================================
   useEffect(() => {
     const getUserRole = async () => {
-      const response = await getAuthenticatedHttpClient().get(
-        `${config.LMS_BASE_URL}/panorama/api/get-user-role`
+      const { data } = await getAuthenticatedHttpClient().get(
+        `${config.LMS_BASE_URL}/panorama/api/get-user-role`,
       );
-      changeUserRole(response.data.body);
+      changeUserRole(data.body);
     };
+
     getUserRole();
-  }, []);
+  }, [changeUserRole, config.LMS_BASE_URL]);
 
   // ==========================================================
   // FETCH DASHBOARD OR STUDIO URLS
@@ -46,32 +46,26 @@ const Embed = () => {
         // ---------------------------------------
         // SELECCIÓN DEL ENDPOINT SEGÚN EL TIPO
         // ---------------------------------------
-        if (dashboardFunction === "AUTHOR") {
+        if (dashboardFunction === 'AUTHOR') {
           // Consola de edición
           url = `${config.LMS_BASE_URL}/panorama/api/get-studio-url`;
-          console.log(url);
         } else {
           // Reader o Author en modo dashboards
           url = `${config.LMS_BASE_URL}/panorama/api/get-embed-url?dashboard_function=${dashboardFunction}`;
-          console.log(url);
         }
 
         const { data } = await getAuthenticatedHttpClient().get(url);
         const enrollmentData = camelCaseObject(data);
-        const urlResponse = await enrollmentData.body;
+        const urlResponse = enrollmentData.body;
 
         setResponse(urlResponse);
         handleDataReceived(urlResponse);
 
-        const containers = {};
         for (let i = 0; i < urlResponse.length; i++) {
-          containers[urlResponse[i].name] = document.createElement("div");
-          containers[
-            urlResponse[i].name
-          ].id = `${urlResponse[i].name}Container`;
+          const container = document.createElement('div');
+          container.id = `${urlResponse[i].name}Container`;
         }
 
-        setDashboardContainers(containers);
         changeDashboardType(urlResponse[0].displayName);
         changeLoader(false);
       } catch (error) {
@@ -82,7 +76,15 @@ const Embed = () => {
     };
 
     fetchData();
-  }, [config.LMS_BASE_URL, dashboardFunction, userRole]);
+  }, [
+    changeDashboardType,
+    changeError,
+    changeLoader,
+    config.LMS_BASE_URL,
+    dashboardFunction,
+    handleDataReceived,
+    userRole,
+  ]);
 
   // ==========================================================
   // EMBED DASHBOARDS OR CONSOLE
@@ -91,70 +93,80 @@ const Embed = () => {
     const embedDashboards = async () => {
       changeLoader(true);
 
-      if (!response) return;
+      if (!response) {
+        changeLoader(false);
+        return;
+      }
 
       const embeddingContext = await createEmbeddingContext();
-      const { embedDashboard, embedConsole, embedQSearchBar } =
-        embeddingContext;
+      const { embedDashboard, embedConsole, embedQSearchBar } = embeddingContext;
 
-      for (let i = 0; i < response.length; i++) {
-        const containerId = `${response[i].name}Container`;
+      await Promise.all(response.map(async (dashboard) => {
+        const containerId = `${dashboard.name}Container`;
         const container = document.getElementById(containerId);
 
-        if (!container) continue;
+        if (!container) {
+          return;
+        }
 
         if (container.firstChild) {
           container.removeChild(container.firstChild);
         }
 
         const options = {
-          url: response[i].url,
-          container: container,
-          width: "100%",
+          url: dashboard.url,
+          container,
+          width: '100%',
         };
 
         // ---------------------------------------
         // EMBEDDING SEGÚN TIPO
         // ---------------------------------------
-        if (dashboardFunction === "AUTHOR") {
+        if (dashboardFunction === 'AUTHOR') {
           // Studio (consola)
           embedConsole(options);
-        } else if (dashboardFunction === "READER") {
+        } else if (dashboardFunction === 'READER') {
           // Reader con parámetros si es STUDENT
-          if (userRole === "STUDENT") {
+          if (userRole === 'STUDENT') {
             const contentOptions = {
               parameters: [
-                { Name: "userId", Values: [authenticatedUser.userId] },
-                { Name: "lms", Values: [config.LMS_BASE_URL.split("//")[1]] },
-                { Name: "userFullName", Values: [authenticatedUser.name] },
-                { Name: "userEmail", Values: [authenticatedUser.email] },
+                { Name: 'userId', Values: [authenticatedUser.userId] },
+                { Name: 'lms', Values: [config.LMS_BASE_URL.split('//')[1]] },
+                { Name: 'userFullName', Values: [authenticatedUser.name] },
+                { Name: 'userEmail', Values: [authenticatedUser.email] },
               ],
             };
 
-            const embeddedDashboard = await embedDashboard(
-              options,
-              contentOptions
-            );
+            const embeddedDashboard = await embedDashboard(options, contentOptions);
 
             embeddedDashboard.setParameters([
-              { Name: "userId", Values: authenticatedUser.userId },
-              { Name: "lms", Values: config.LMS_BASE_URL.split("//")[1] },
-              { Name: "userFullName", Values: authenticatedUser.name },
-              { Name: "userEmail", Values: authenticatedUser.email },
+              { Name: 'userId', Values: authenticatedUser.userId },
+              { Name: 'lms', Values: config.LMS_BASE_URL.split('//')[1] },
+              { Name: 'userFullName', Values: authenticatedUser.name },
+              { Name: 'userEmail', Values: authenticatedUser.email },
             ]);
           } else {
             embedDashboard(options);
           }
-        } else if (dashboardFunction === "AI_AUTHOR") {
+        } else if (dashboardFunction === 'AI_AUTHOR') {
           embedQSearchBar(options);
         }
-      }
+      }));
 
       changeLoader(false);
     };
 
     embedDashboards();
-  }, [response]);
+  }, [
+    authenticatedUser.email,
+    authenticatedUser.name,
+    authenticatedUser.userId,
+    changeLoader,
+    config.LMS_BASE_URL,
+    dashboardFunction,
+    response,
+    userRole,
+  ]);
 
   return null;
 };
