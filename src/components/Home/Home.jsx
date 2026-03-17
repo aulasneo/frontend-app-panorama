@@ -1,48 +1,26 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { AppContext } from '@edx/frontend-platform/react';
-import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
-import { camelCaseObject } from '@edx/frontend-platform';
+import React, { useContext } from 'react';
 import { DashboardTypeContext } from '../DashboardContext';
+import EmbedHome from './EmbedHome';
 
 const Home = () => {
-  const { homeMode, changeHomeMode, changeError } = useContext(DashboardTypeContext);
-  const { config } = useContext(AppContext);
-  const [iframeSrc, setIframeSrc] = useState(null);
+  const { homeMode } = useContext(DashboardTypeContext);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const url = `${config.LMS_BASE_URL}/panorama/api/get-panorama-mode`;
-        const { data } = await getAuthenticatedHttpClient().get(url);
-        const enrollmentData = camelCaseObject(data);
-        const home = enrollmentData.body;
-        changeHomeMode(home);
-      } catch (error) {
-        const httpErrorStatus = error?.response?.status;
-        changeError(httpErrorStatus);
-      }
-    };
-    fetchData();
-  }, [config.LMS_BASE_URL, changeHomeMode, changeError]);
-
-  useEffect(() => {
-    if (homeMode === 'FREE') {
-      setIframeSrc('https://panorama-home-pages.s3.amazonaws.com/panorama-free-home.html');
-    } else if (homeMode === 'SAAS') {
-      setIframeSrc('https://panorama-home-pages.s3.amazonaws.com/panorama-saas-home.html');
-    } else if (homeMode === 'CUSTOM') {
-      setIframeSrc('https://panorama-home-pages.s3.amazonaws.com/panorama-custom-home.html');
-    } else if (homeMode) {
-      setIframeSrc('https://panorama-home-pages.s3.amazonaws.com/panorama-demo-home.html');
-    }
-  }, [homeMode]);
+  let iframeSrc;
+  if (homeMode === 'FREE') {
+    iframeSrc = 'https://panorama-home-pages.s3.amazonaws.com/panorama-free-home.html';
+  } else if (homeMode === 'SAAS') {
+    iframeSrc = 'https://panorama-home-pages.s3.amazonaws.com/panorama-saas-home.html';
+  } else if (homeMode === 'CUSTOM') {
+    iframeSrc = 'https://panorama-home-pages.s3.amazonaws.com/panorama-custom-home.html';
+  } else {
+    iframeSrc = 'https://panorama-home-pages.s3.amazonaws.com/panorama-demo-home.html';
+  }
 
   return (
     <div className="dashboard" id="dashboard">
+      <EmbedHome />
       <div className="framesContainerHome" id="framesContainerHome">
-        {iframeSrc && (
-          <iframe className="homes-iframe" src={iframeSrc} title="Home Mode" />
-        )}
+        <iframe className="homes-iframe" src={iframeSrc} title="Home Mode" />
       </div>
     </div>
   );

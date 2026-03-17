@@ -13,16 +13,16 @@ const Tabs = () => {
   const [showTabs, setShowTabs] = useState(false);
   const [userRole, setUserRole] = useState('');
   const { config } = useContext(AppContext);
-  const getUserRole = async () => {
-    const response = await getAuthenticatedHttpClient().get(`${config.LMS_BASE_URL}/panorama/api/get-user-role`);
-    setUserRole(response.data.body);
-  };
 
   useEffect(() => {
-    getUserRole();
-  }, []);
+    const getUserRole = async () => {
+      const response = await getAuthenticatedHttpClient().get(`${config.LMS_BASE_URL}/panorama/api/get-user-role`);
+      setUserRole(response.data.body);
+    };
 
-  
+    getUserRole();
+  }, [config.LMS_BASE_URL]);
+
   useEffect(() => {
     if (dashboardResponse && dashboardResponse.length > 0 && itemsMenu.length === 0) {
       const updatedItemsMenu = [];
@@ -41,7 +41,7 @@ const Tabs = () => {
     setShowTabs(false);
   };
 
-  const ChangeShowTabs = (e) => {
+  const changeShowTabs = (e) => {
     if (e.target.name === 'dashboards-button') {
       setShowTabs(!showTabs);
     }
@@ -56,7 +56,7 @@ const Tabs = () => {
             <button
               type="button"
               className={`buttonMenu ${(dashboardFunction === 'AUTHOR' || dashboardFunction === 'AI_AUTHOR') && 'disabled'}`}
-              onClick={ChangeShowTabs}
+              onClick={changeShowTabs}
               value={userRole === 'AUTHOR' ? 'AUTHOR' : 'AI_AUTHOR'}
             >
               Studio
@@ -66,7 +66,7 @@ const Tabs = () => {
         <button
           type="button"
           className="buttonMenu"
-          onClick={ChangeShowTabs}
+          onClick={changeShowTabs}
           onBlur={handleStudioBlur}
           name="dashboards-button"
           value="READER"
@@ -77,8 +77,8 @@ const Tabs = () => {
       <img alt="logo-panorama" src={logo} className="logo-panorama" />
       {(dashboardFunction === 'READER') && (
         <div className={`tab-container ${showTabs ? 'open' : 'close'}`}>
-          {itemsMenu.map((item, index) => (
-            <div id={`tab${index}`} className="tab" key={`${item}_${index}`}>
+          {itemsMenu.map((item) => (
+            <div id={`tab-${item}`} className="tab" key={item}>
               <a
                 className={`${item === dashboardType ? 'selected' : ''}`}
                 aria-current="page"

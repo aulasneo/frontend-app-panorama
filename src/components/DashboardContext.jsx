@@ -10,7 +10,7 @@ export const DashboardTypeContext = createContext({
   changeHomeMode: () => { },
   handleDataReceived: () => { },
   itemsMenu: [],
-  homeMode: '',
+  homeMode: 'DEMO',
 });
 
 export const DashboardTypeProvider = ({ children }) => {
@@ -19,7 +19,7 @@ export const DashboardTypeProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [response, setResponse] = useState('');
   const [dashboardFunction, setDashboardFunction] = useState('READER');
-  const [homeMode, setHomeMode] = useState('');
+  const [homeMode, setHomeMode] = useState('DEMO');
   const [userRole, setUserRole] = useState('');
 
   const changeUserRole = (value) => {
