@@ -83,7 +83,6 @@ const Embed = () => {
     config.LMS_BASE_URL,
     dashboardFunction,
     handleDataReceived,
-    userRole,
   ]);
 
   // ==========================================================
