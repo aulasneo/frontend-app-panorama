@@ -6,10 +6,10 @@ import './stylesTabs.css';
 const Tabs = () => {
   const {
     changeDashboardType,
+    changeCurrentView,
     dashboardType,
+    currentView,
     response: dashboardResponse,
-    dashboardFunction,
-    changeDashboardFunction,
     userRole,
   } = useContext(DashboardTypeContext);
   const [itemsMenu, setItemsMenu] = useState([]);
@@ -29,23 +29,25 @@ const Tabs = () => {
     setShowTabs(false);
   };
 
-  const changeShowTabs = (e) => {
-    if (e.target.name === 'dashboards-button') {
-      setShowTabs(!showTabs);
-    }
-    changeDashboardFunction(e.target.value);
+  const showDashboards = () => {
+    setShowTabs((current) => !current);
+    changeCurrentView('DASHBOARDS');
+  };
+
+  const showStudio = () => {
+    setShowTabs(false);
+    changeCurrentView('STUDIO');
   };
 
   return (
     <div className="content-tabs">
       <div className="sidebar">
         {
-          (userRole === 'AUTHOR' || userRole === 'AI_AUTHOR') && (
+          (userRole === 'AUTHOR') && (
             <button
               type="button"
-              className={`buttonMenu ${(dashboardFunction === 'AUTHOR' || dashboardFunction === 'AI_AUTHOR') && 'disabled'}`}
-              onClick={changeShowTabs}
-              value={userRole === 'AUTHOR' ? 'AUTHOR' : 'AI_AUTHOR'}
+              className={`buttonMenu ${currentView === 'STUDIO' ? 'disabled' : ''}`}
+              onClick={showStudio}
             >
               Studio
             </button>
@@ -54,16 +56,15 @@ const Tabs = () => {
         <button
           type="button"
           className="buttonMenu"
-          onClick={changeShowTabs}
+          onClick={showDashboards}
           onBlur={handleStudioBlur}
           name="dashboards-button"
-          value="READER"
         >
           Dashboards
         </button>
       </div>
       <img alt="logo-panorama" src={logo} className="logo-panorama" />
-      {(dashboardFunction === 'READER') && (
+      {(currentView === 'DASHBOARDS') && (
         <div className={`tab-container ${showTabs ? 'open' : 'close'}`}>
           {itemsMenu.map((item) => (
             <div id={`tab-${item}`} className="tab" key={item}>
