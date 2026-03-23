@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 export const DashboardTypeContext = createContext({
   dashboardType: '',
   changeDashboardType: () => { },
+  changeCurrentView: () => { },
   changeUserRole: () => { },
   changeError: () => { },
   changeLoader: () => { },
@@ -17,10 +18,10 @@ export const DashboardTypeContext = createContext({
 
 export const DashboardTypeProvider = ({ children }) => {
   const [dashboardType, setDashboardType] = useState('');
+  const [currentView, setCurrentView] = useState('DASHBOARDS');
   const [loader, setLoader] = useState(true);
   const [error, setError] = useState(null);
   const [response, setResponse] = useState('');
-  const [dashboardFunction, setDashboardFunction] = useState('READER');
   const [homeMode, setHomeMode] = useState('DEMO');
   const [userRole, setUserRole] = useState('');
 
@@ -28,10 +29,9 @@ export const DashboardTypeProvider = ({ children }) => {
     setUserRole(value);
   }, []);
 
-  const changeDashboardFunction = useCallback((value) => {
-    setDashboardFunction(value);
+  const changeCurrentView = useCallback((value) => {
+    setCurrentView(value);
   }, []);
-
   const changeDashboardType = useCallback((value) => {
     setDashboardType(value);
   }, []);
@@ -56,6 +56,8 @@ export const DashboardTypeProvider = ({ children }) => {
     () => ({
       dashboardType,
       changeDashboardType,
+      currentView,
+      changeCurrentView,
       handleDataReceived,
       changeHomeMode,
       changeError,
@@ -63,20 +65,18 @@ export const DashboardTypeProvider = ({ children }) => {
       loader,
       error,
       response,
-      changeDashboardFunction,
-      dashboardFunction,
       homeMode,
       userRole,
       changeUserRole,
     }),
     [
-      changeDashboardFunction,
+      changeCurrentView,
       changeDashboardType,
       changeError,
       changeHomeMode,
       changeLoader,
       changeUserRole,
-      dashboardFunction,
+      currentView,
       dashboardType,
       error,
       handleDataReceived,
