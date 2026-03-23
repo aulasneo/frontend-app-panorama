@@ -14,22 +14,21 @@ const Panels = () => {
     <div className="dashboard" id="dashboard">
       {!error && <Embed />}
       <Tabs />
-      {!error && loader ? (
-        <div className="circularProgress">
+      <div className="framesContainer" id="framesContainer">
+        {response && response.map((item) => (
+          <div
+            key={item.name}
+            style={{
+              width: '100%',
+              display: dashboardType === item.displayName ? 'flex' : 'none',
+            }}
+            id={`${item.name}Container`}
+          />
+        ))}
+      </div>
+      {!error && loader && (
+        <div className="circularProgress circularProgressOverlay">
           <CircularProgress />
-        </div>
-      ) : (
-        <div className="framesContainer" id="framesContainer">
-          {response && response.map((item) => (
-            <div
-              key={item.name}
-              style={{
-                width: '100%',
-                display: dashboardType === item.displayName ? 'flex' : 'none',
-              }}
-              id={`${item.name}Container`}
-            />
-          ))}
         </div>
       )}
       {error && (

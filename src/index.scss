@@ -33,6 +33,13 @@
     height: calc(100vh - 161px);
 }
 
+.circularProgressOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: rgba(246, 246, 246, 0.9);
+}
+
 .dashboard {
     width: 100%;
     display: flex;
@@ -41,6 +48,8 @@
     align-items: flex-end;
     align-content: center;
     overflow: hidden;
+    min-height: calc(100vh - 161px);
+    position: relative;
 }
 
 .quicksight-embedding-iframe {
@@ -50,6 +59,7 @@
 .framesContainer {
     width: 100%;
     border: 1px solid var(--tabs-border-color);
+    min-height: calc(100vh - 161px);
 }
 
 .framesContainerHome {
