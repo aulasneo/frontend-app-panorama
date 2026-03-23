@@ -1,4 +1,6 @@
-import React, { useState, createContext, useMemo } from 'react';
+import React, {
+  useState, createContext, useMemo, useCallback,
+} from 'react';
 import PropTypes from 'prop-types';
 
 export const DashboardTypeContext = createContext({
@@ -22,33 +24,33 @@ export const DashboardTypeProvider = ({ children }) => {
   const [homeMode, setHomeMode] = useState('DEMO');
   const [userRole, setUserRole] = useState('');
 
-  const changeUserRole = (value) => {
+  const changeUserRole = useCallback((value) => {
     setUserRole(value);
-  };
+  }, []);
 
-  const changeDashboardFunction = (value) => {
+  const changeDashboardFunction = useCallback((value) => {
     setDashboardFunction(value);
-  };
+  }, []);
 
-  const changeDashboardType = (value) => {
+  const changeDashboardType = useCallback((value) => {
     setDashboardType(value);
-  };
+  }, []);
 
-  const changeHomeMode = (value) => {
+  const changeHomeMode = useCallback((value) => {
     setHomeMode(value);
-  };
+  }, []);
 
-  const handleDataReceived = (data) => {
+  const handleDataReceived = useCallback((data) => {
     setResponse(data);
-  };
+  }, []);
 
-  const changeError = (newError) => {
+  const changeError = useCallback((newError) => {
     setError(newError);
-  };
+  }, []);
 
-  const changeLoader = (newLoader) => {
+  const changeLoader = useCallback((newLoader) => {
     setLoader(newLoader);
-  };
+  }, []);
 
   const contextValue = useMemo(
     () => ({
@@ -67,7 +69,22 @@ export const DashboardTypeProvider = ({ children }) => {
       userRole,
       changeUserRole,
     }),
-    [dashboardType, loader, error, response, userRole, dashboardFunction, homeMode],
+    [
+      changeDashboardFunction,
+      changeDashboardType,
+      changeError,
+      changeHomeMode,
+      changeLoader,
+      changeUserRole,
+      dashboardFunction,
+      dashboardType,
+      error,
+      handleDataReceived,
+      homeMode,
+      loader,
+      response,
+      userRole,
+    ],
   );
 
   return (
