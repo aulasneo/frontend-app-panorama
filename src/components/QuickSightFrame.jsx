@@ -15,10 +15,32 @@ const getQuickSightErrorMessage = (event) => {
   return 'QuickSight embedding failed';
 };
 
+const getStudentParametersFromUrl = (url) => {
+  const fragment = url.split('#')[1];
+  if (!fragment) {
+    return [];
+  }
+
+  const fragmentParams = new URLSearchParams(fragment);
+  const quickSightParameters = [];
+
+  ['userId', 'lms'].forEach((name) => {
+    const value = fragmentParams.get(`p.${name}`);
+    if (value) {
+      quickSightParameters.push({
+        Name: name,
+        Values: [value],
+      });
+    }
+  });
+
+  return quickSightParameters;
+};
+
 const QuickSightFrame = ({ dashboard, isActive }) => {
   const containerRef = useRef(null);
   const hasEmbeddedRef = useRef(false);
-  const { changeError } = useContext(DashboardTypeContext);
+  const { changeError, userRole } = useContext(DashboardTypeContext);
 
   useEffect(() => {
     if (!isActive || !dashboard?.url || !containerRef.current) {
@@ -56,9 +78,24 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
           },
         };
 
+        const isStudentView = userRole === 'STUDENT';
+        const studentParameters = isStudentView ? getStudentParametersFromUrl(dashboard.url) : [];
+
         containerRef.current.replaceChildren();
 
-        await embeddingContext.embedDashboard(frameOptions, contentOptions);
+        const embeddedDashboard = await embeddingContext.embedDashboard(
+          frameOptions,
+          studentParameters.length > 0
+            ? {
+              ...contentOptions,
+              parameters: studentParameters,
+            }
+            : contentOptions,
+        );
+
+        if (studentParameters.length > 0) {
+          await embeddedDashboard.setParameters(studentParameters);
+        }
 
         hasEmbeddedRef.current = true;
       } catch (error) {
@@ -79,6 +116,7 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
     changeError,
     dashboard,
     isActive,
+    userRole,
   ]);
 
   useEffect(() => {
