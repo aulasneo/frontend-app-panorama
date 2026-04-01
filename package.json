@@ -27,7 +27,7 @@
   "author": "edX",
   "license": "AGPL-3.0",
   "engines": {
-    "node": ">=20.12.0"
+    "node": ">=24"
   },
   "homepage": "https://github.com/openedx/frontend-app-panorama#readme",
   "publishConfig": {
@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@edx/brand": "npm:@openedx/brand-openedx@^1.2.2",
-    "@edx/frontend-component-footer": "^14.9.5",
-    "@edx/frontend-component-header": "^6.2.0",
+    "@edx/frontend-component-footer": "^14.6.0",
+    "@edx/frontend-component-header": "^8.0.0",
     "@edx/frontend-platform": "^8.4.0",
     "@edx/openedx-atlas": "^0.7.0",
     "@emotion/react": "^11.11.4",
@@ -48,7 +48,7 @@
     "@fortawesome/free-brands-svg-icons": "5.15.4",
     "@fortawesome/free-regular-svg-icons": "5.15.4",
     "@fortawesome/free-solid-svg-icons": "5.15.4",
-    "@fortawesome/react-fontawesome": "0.2.0",
+    "@fortawesome/react-fontawesome": "^0.1.4",
     "@mui/material": "^5.15.15",
     "@openedx/frontend-plugin-framework": "^1.7.0",
     "@openedx/paragon": "^23.4.5",
@@ -63,13 +63,13 @@
     "react-i18next": "^14.1.0",
     "react-icons": "^5.1.0",
     "react-redux": "7.2.9",
-    "react-router": "^6.30.3",
-    "react-router-dom": "^6.30.3",
+    "react-router": "6.15.0",
+    "react-router-dom": "6.15.0",
     "redux": "4.2.1",
     "regenerator-runtime": "0.14.1"
   },
   "devDependencies": {
-    "@edx/browserslist-config": "^1.5.1",
+    "@edx/browserslist-config": "1.5.0",
     "@edx/reactifex": "^2.1.1",
     "@openedx/frontend-build": "^14.6.2",
     "glob": "7.2.3",
