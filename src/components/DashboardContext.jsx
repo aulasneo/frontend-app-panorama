@@ -13,7 +13,7 @@ export const DashboardTypeContext = createContext({
   changeHomeMode: () => { },
   handleDataReceived: () => { },
   itemsMenu: [],
-  homeMode: 'DEMO',
+  homeMode: '',
 });
 
 export const DashboardTypeProvider = ({ children }) => {
@@ -22,7 +22,7 @@ export const DashboardTypeProvider = ({ children }) => {
   const [loader, setLoader] = useState(true);
   const [error, setError] = useState(null);
   const [response, setResponse] = useState('');
-  const [homeMode, setHomeMode] = useState('DEMO');
+  const [homeMode, setHomeMode] = useState('');
   const [userRole, setUserRole] = useState('');
 
   const changeUserRole = useCallback((value) => {
