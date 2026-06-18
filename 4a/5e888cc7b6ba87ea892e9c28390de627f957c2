@@ -1,0 +1,25 @@
+src/components/QuickSightFrame.jsx
+  s_dba04b08be3327::t_dfcc0930e9b563 55
+  s_dba04b08be3327::t_861ca299e683a0 60,76,82,101,132
+  s_dba04b08be3327::t_95fe840d61bbde 11-14,22-24,51-52,64-70,72-74,81,86-87,92,99,131,136,153
+src/components/QuickSightConsoleFrame.jsx
+  s_dba04b08be3327::t_95fe840d61bbde 13-16,24-26,48-49,60-68,82-83,86
+src/index.scss
+  s_dba04b08be3327::t_95fe840d61bbde 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "4a5e888cc7b6ba87ea892e9c28390de627f957c2",
+  "prompts": {},
+  "sessions": {
+    "s_dba04b08be3327": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edbf0-b360-7540-aebc-133ef7251bba",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
