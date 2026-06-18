@@ -8,12 +8,19 @@ const getQuickSightErrorMessage = (event) => {
     return `QuickSight error: ${event.message.errorCode}`;
   }
 
+  if (typeof event?.message === 'string') {
+    return event.message;
+  }
+
   if (event?.eventName) {
     return `QuickSight frame error: ${event.eventName}`;
   }
 
   return 'QuickSight embedding failed';
 };
+
+const isQuickSightErrorEvent = (event) => event?.eventLevel === 'ERROR'
+  || event?.eventName === 'ERROR_OCCURRED';
 
 const getStudentParametersFromUrl = (url) => {
   const fragment = url.split('#')[1];
@@ -41,47 +48,57 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
   const containerRef = useRef(null);
   const hasEmbeddedRef = useRef(false);
   const { changeError, userRole } = useContext(DashboardTypeContext);
+  const dashboardName = dashboard.name;
+  const dashboardUrl = dashboard.url;
 
   useEffect(() => {
-    if (!isActive || !dashboard?.url || !containerRef.current) {
+    if (!isActive || !dashboardUrl || !userRole || !containerRef.current) {
       return undefined;
     }
 
     let isCancelled = false;
+    const container = containerRef.current;
 
     const mountDashboard = async () => {
       try {
-        const embeddingContext = await createEmbeddingContext();
+        changeError(null);
 
-        if (isCancelled || !containerRef.current) {
+        const onQuickSightChange = (changeEvent) => {
+          if (!isCancelled && isQuickSightErrorEvent(changeEvent)) {
+            changeError(getQuickSightErrorMessage(changeEvent));
+          }
+        };
+
+        const embeddingContext = await createEmbeddingContext({
+          onChange: onQuickSightChange,
+        });
+
+        if (isCancelled || !container) {
           return;
         }
 
         const frameOptions = {
-          url: dashboard.url,
-          container: containerRef.current,
+          url: dashboardUrl,
+          container,
           width: '100%',
           height: '100%',
           className: 'quicksight-embedding-iframe',
-          onChange: (changeEvent) => {
-            if (changeEvent.eventLevel === 'ERROR') {
-              changeError(getQuickSightErrorMessage(changeEvent));
-            }
-          },
+          withIframePlaceholder: true,
+          onChange: onQuickSightChange,
         };
 
         const contentOptions = {
           onMessage: (messageEvent) => {
-            if (messageEvent.eventName === 'ERROR_OCCURRED') {
+            if (!isCancelled && isQuickSightErrorEvent(messageEvent)) {
               changeError(getQuickSightErrorMessage(messageEvent));
             }
           },
         };
 
         const isStudentView = userRole === 'STUDENT';
-        const studentParameters = isStudentView ? getStudentParametersFromUrl(dashboard.url) : [];
+        const studentParameters = isStudentView ? getStudentParametersFromUrl(dashboardUrl) : [];
 
-        containerRef.current.replaceChildren();
+        container.replaceChildren();
 
         const embeddedDashboard = await embeddingContext.embedDashboard(
           frameOptions,
@@ -111,10 +128,12 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
 
     return () => {
       isCancelled = true;
+      hasEmbeddedRef.current = false;
+      container.replaceChildren();
     };
   }, [
     changeError,
-    dashboard,
+    dashboardUrl,
     isActive,
     userRole,
   ]);
@@ -131,7 +150,7 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
   return (
     <div
       ref={containerRef}
-      id={`${dashboard.name}Container`}
+      id={`${dashboardName}Container`}
       style={{
         width: '100%',
         display: isActive ? 'flex' : 'none',

@@ -10,12 +10,19 @@ const getQuickSightErrorMessage = (event) => {
     return `QuickSight error: ${event.message.errorCode}`;
   }
 
+  if (typeof event?.message === 'string') {
+    return event.message;
+  }
+
   if (event?.eventName) {
     return `QuickSight frame error: ${event.eventName}`;
   }
 
   return 'QuickSight embedding failed';
 };
+
+const isQuickSightErrorEvent = (event) => event?.eventLevel === 'ERROR'
+  || event?.eventName === 'ERROR_OCCURRED';
 
 const QuickSightConsoleFrame = () => {
   const containerRef = useRef(null);
@@ -38,6 +45,8 @@ const QuickSightConsoleFrame = () => {
       changeLoader(true);
 
       try {
+        changeError(null);
+
         const { data } = await getAuthenticatedHttpClient().get(
           `${config.LMS_BASE_URL}/panorama/api/get-studio-url`,
         );
@@ -48,7 +57,15 @@ const QuickSightConsoleFrame = () => {
           throw new Error('Studio URL not available');
         }
 
-        const embeddingContext = await createEmbeddingContext();
+        const onQuickSightChange = (changeEvent) => {
+          if (!isCancelled && isQuickSightErrorEvent(changeEvent)) {
+            changeError(getQuickSightErrorMessage(changeEvent));
+          }
+        };
+
+        const embeddingContext = await createEmbeddingContext({
+          onChange: onQuickSightChange,
+        });
 
         if (isCancelled || !container) {
           return;
@@ -62,14 +79,11 @@ const QuickSightConsoleFrame = () => {
           width: '100%',
           height: '100%',
           className: 'quicksight-embedding-iframe',
-          onChange: (changeEvent) => {
-            if (changeEvent.eventLevel === 'ERROR') {
-              changeError(getQuickSightErrorMessage(changeEvent));
-            }
-          },
+          withIframePlaceholder: true,
+          onChange: onQuickSightChange,
         }, {
           onMessage: (messageEvent) => {
-            if (messageEvent.eventName === 'ERROR_OCCURRED') {
+            if (!isCancelled && isQuickSightErrorEvent(messageEvent)) {
               changeError(getQuickSightErrorMessage(messageEvent));
             }
           },
