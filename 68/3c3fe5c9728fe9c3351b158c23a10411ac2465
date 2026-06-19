@@ -1,0 +1,22 @@
+package.json
+  s_dba04b08be3327::t_41eed773a2f77e 56,66-67
+  s_dba04b08be3327::t_eed8ecc3848e0b 77-78
+  s_dba04b08be3327::t_0cc22171afe86c 79-80
+  s_dba04b08be3327::t_4e0fc9e4c28f39 81-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "683c3fe5c9728fe9c3351b158c23a10411ac2465",
+  "prompts": {},
+  "sessions": {
+    "s_dba04b08be3327": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edbf0-b360-7540-aebc-133ef7251bba",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
