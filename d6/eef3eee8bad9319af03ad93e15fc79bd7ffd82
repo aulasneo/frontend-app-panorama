@@ -1,0 +1,19 @@
+src/components/QuickSightFrame.jsx
+  s_dba04b08be3327::t_4f518cd6f09b96 55-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "d6eef3eee8bad9319af03ad93e15fc79bd7ffd82",
+  "prompts": {},
+  "sessions": {
+    "s_dba04b08be3327": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edbf0-b360-7540-aebc-133ef7251bba",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
