@@ -52,6 +52,13 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
   const dashboardUrl = dashboard.url;
 
   useEffect(() => {
+    hasEmbeddedRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.replaceChildren();
+    }
+  }, [dashboardUrl]);
+
+  useEffect(() => {
     if (!isActive || !dashboardUrl || !userRole || !containerRef.current) {
       return undefined;
     }
@@ -128,8 +135,6 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
 
     return () => {
       isCancelled = true;
-      hasEmbeddedRef.current = false;
-      container.replaceChildren();
     };
   }, [
     changeError,
@@ -137,15 +142,6 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
     isActive,
     userRole,
   ]);
-
-  useEffect(() => {
-    if (!isActive) {
-      hasEmbeddedRef.current = false;
-      if (containerRef.current) {
-        containerRef.current.replaceChildren();
-      }
-    }
-  }, [isActive]);
 
   return (
     <div
