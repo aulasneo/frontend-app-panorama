@@ -21,8 +21,21 @@ const getQuickSightErrorMessage = (event) => {
   return 'QuickSight embedding failed';
 };
 
-const isQuickSightErrorEvent = (event) => event?.eventLevel === 'ERROR'
-  || event?.eventName === 'ERROR_OCCURRED';
+const QUICK_SIGHT_FRAME_ERROR_EVENTS = [
+  'NO_FRAME_OPTIONS',
+  'INVALID_FRAME_OPTIONS',
+  'FRAME_NOT_CREATED',
+  'NO_BODY',
+  'NO_CONTAINER',
+  'INVALID_CONTAINER',
+  'NO_URL',
+  'INVALID_URL',
+];
+
+const isQuickSightFrameErrorEvent = (event) => event?.eventLevel === 'ERROR'
+  && QUICK_SIGHT_FRAME_ERROR_EVENTS.includes(event?.eventName);
+
+const isQuickSightContentErrorEvent = (event) => event?.eventName === 'ERROR_OCCURRED';
 
 const QuickSightConsoleFrame = () => {
   const containerRef = useRef(null);
@@ -58,7 +71,7 @@ const QuickSightConsoleFrame = () => {
         }
 
         const onQuickSightChange = (changeEvent) => {
-          if (!isCancelled && isQuickSightErrorEvent(changeEvent)) {
+          if (!isCancelled && isQuickSightFrameErrorEvent(changeEvent)) {
             changeError(getQuickSightErrorMessage(changeEvent));
           }
         };
@@ -83,7 +96,7 @@ const QuickSightConsoleFrame = () => {
           onChange: onQuickSightChange,
         }, {
           onMessage: (messageEvent) => {
-            if (!isCancelled && isQuickSightErrorEvent(messageEvent)) {
+            if (!isCancelled && isQuickSightContentErrorEvent(messageEvent)) {
               changeError(getQuickSightErrorMessage(messageEvent));
             }
           },
