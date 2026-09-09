@@ -3,6 +3,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { camelCaseObject } from '@edx/frontend-platform';
 import { DashboardTypeContext } from '../DashboardContext';
+import getApiErrorMessage from '../errors';
 
 const EmbedHome = () => {
   const {
@@ -11,19 +12,21 @@ const EmbedHome = () => {
   const { config } = useContext(AppContext);
 
   useEffect(() => {
+    let cancelled = false;
+    changeError(null);
     const fetchData = async () => {
       try {
         const url = `${config.LMS_BASE_URL}/panorama/api/get-panorama-mode`;
         const { data } = await getAuthenticatedHttpClient().get(url);
         const enrollmentData = camelCaseObject(data);
         const home = enrollmentData.body;
-        changeHomeMode(home);
+        if (!cancelled) { changeHomeMode(home); }
       } catch (error) {
-        const httpErrorStatus = error?.response?.status;
-        changeError(httpErrorStatus);
+        if (!cancelled) { changeError(getApiErrorMessage(error)); }
       }
     };
     fetchData();
+    return () => { cancelled = true; };
   }, [changeError, changeHomeMode, config.LMS_BASE_URL]);
 
   return null;

@@ -1,157 +1,64 @@
-# frontend-template-application
+# Panorama for Open edX
 
-[![License](https://img.shields.io/github/license/openedx/frontend-template-application.svg)](https://github.com/openedx/frontend-template-application/blob/main/LICENSE)
-![status-badge](https://img.shields.io/badge/Status-Maintained-brightgreen)
-[![Continuous Integration](https://github.com/openedx/frontend-template-application/actions/workflows/ci.yml/badge.svg)](https://github.com/openedx/frontend-template-application/actions/workflows/ci.yml)
-[![Codecov](https://codecov.io/github/openedx/frontend-template-application/coverage.svg?branch=main)](https://codecov.io/github/openedx/frontend-template-application?branch=main)
+Panorama is a standalone Open edX micro-frontend for QuickSight dashboards and
+author console access. Tutor installs it at `/panorama/`; `/panorama/panels` is
+the dashboard deep link. The LMS `panorama-openedx-backend` supplies dashboard
+URLs and Panorama roles using the platform's authenticated HTTP client.
 
-## Purpose
+## Development and verification
 
-This repository is a template for Open edX micro-frontend applications. It is
-flagged as a Template Repository, meaning it can be used as a basis for new
-GitHub repositories by clicking the green "Use this template" button above.
-The rest of this document describes how to work with your new micro-frontend
-after you've created a new repository from the template.
+Use Node 24 (see `.nvmrc`) and the committed npm lockfile:
 
-## Getting Started
+```sh
+npm ci
+npm run lint
+npm test -- --runInBand
+npm run build
+```
 
-After copying the template repository, you'll want to do a find-and-replace to
-replace all instances of `frontend-template-application` with the name of your
-new repository. Also edit `index.html` to replace "Application Template" with a
-friendly name for this application that users will see in their browser tab.
+Run `npm start` with an LMS development environment and the public configuration
+in `.env.development`. Tutor's Panorama development port is 2100. Never put AWS
+credentials or QuickSight private keys in MFE configuration.
 
-### Prerequisites
+## Verawood compatibility
 
-The [devstack](https://github.com/openedx/devstack) is currently recommended as
-a development environment for your new MFE. If you start it with
-`make dev.up.lms` that should give you everything you need as a companion to
-this frontend.
+The compatibility reference is Tutor/tutor-mfe 22.0.0 and the learning MFE's
+[`release/verawood.1` manifest](https://github.com/openedx/frontend-app-learning/blob/release/verawood.1/package.json).
+Shared minimums are frontend-platform 8.7.0, header 8.2.1,
+frontend-build 14.6.6, and browserslist-config 1.5.1. React stays on 18,
+Router on 6 (the existing 6.30.4 security floor is newer than the reference's
+6.15.0), and Paragon on 23. The lockfile contains the tested resolutions;
+newer security fixes are separate from these compatibility minimums.
 
-Note that it is also possible to use [Tutor](https://github.com/overhangio/tutor)
-to develop an MFE. You can refer to the
-[relevant tutor-mfe documentation](https://github.com/overhangio/tutor-mfe#mfe-development)
-to get started using it.
+Panorama continues to own its router, header, footer, and React root. Native
+frontend-base desktop/mobile navigation contributions are maintained in
+`tutor-contrib-panorama`; converting this application into a frontend-base
+package is deferred. A local build here does **not** validate Tutor-generated
+`env.config.jsx` or the assembled frontend-base site. Those must also be built
+with the installation's other enabled plugins.
 
-### Cloning and Startup
+## Access and embedding
 
-In the following steps, replace `[PLACEHOLDER]` with the name of the repo you
-created when copying this template above.
+`get-user-role` and `get-embed-url` must both succeed before mounting a dashboard.
+READER and STUDENT can view their granted dashboards; AUTHOR also sees Studio.
+The backend must enforce every permission regardless of button visibility.
+401 responses explain that sign-in is required again; 403 responses explain
+access denial. Role or dashboard failures stop the loader and display an error.
+An authentication change reloads grants and clears the previous role/content.
 
-1. Clone your new repo:
+QuickSight initialization owns a disposable container for each active mount.
+Switching dashboards, changing URLs/roles, or unmounting detaches that container,
+so an older asynchronous SDK operation cannot inject a frame into a newer view.
+Switching back creates a fresh embed. Student URL fragment parameters are passed
+through for compatibility; they are **not** an authorization boundary. Staging
+must verify dataset-side isolation with tampered `userId` and `lms` parameters.
 
-   `git clone https://github.com/openedx/frontend-app-[PLACEHOLDER].git`
+Regression tests cover role failures, expired sessions, access denial, invalid
+roles, user changes, deep links, student parameters, author-only console access,
+and late SDK/request completion across switches and remounts.
 
-2. Use node v18.x.
-
-   The current version of the micro-frontend build scripts support node 18.
-   Using other major versions of node may work, but this is unsupported. For
-   convenience, this repository includes an `.nvmrc` file to help in setting
-   the correct node version via [nvm](https://github.com/nvm-sh/nvm).
-
-3. Install npm dependencies:
-
-   `cd frontend-app-[PLACEHOLDER] && npm install`
-
-4. Update the application port to use for local development:
-
-   Default port is `8080`. If this does not work for you, update the line
-   `PORT=8080` to your port in all `.env.*` files.
-
-5. Start the dev server:
-
-   `npm start`
-
-The dev server is running at <http://localhost:8080> or whatever port you
-setup.
-
-### Making Your New Project's README File
-
-Move `README-template-frontend-app.rst` to your project's `README.md` file.
-Please fill out all the sections. This helps developers understand your MFE,
-how to install it, and how to use it.
-
-## Developing
-
-This section concerns development of `frontend-template-application` itself,
-not the templated copy.
-
-It should be noted that one of the goals of this repository is for it to
-function correctly as an MFE, as in `npm install && npm start`, even if no
-modifications are made. This ensures that developers get a practical working
-example, not just a theoretical one.
-
-This also means, of course, that any committed code should be tested and
-subject to both CI and branch protection rules.
-
-### Project Structure
-
-The source for this project is organized into nested submodules according to
-the
-[Feature-based Application Organization ADR](https://github.com/openedx/frontend-template-application/blob/master/docs/decisions/0002-feature-based-application-organization.rst).
-
-### Build Process Notes
-
-**Production Build**
-
-The production build is created with `npm run build`.
-
-### Internationalization
-
-Please refer to the
-[frontend-platform i18n howto](https://github.com/openedx/frontend-platform/blob/master/docs/how_tos/i18n.rst)
-for documentation on internationalization.
-
-## Getting Help
-
-If you're having trouble, we have discussion forums at
-<https://discuss.openedx.org> where you can connect with others in the
-community.
-
-Our real-time conversations are on Slack. You can request a
-[Slack invitation](https://openedx.org/slack), then join our
-[community Slack workspace](https://openedx.slack.com/). Because this is a
-frontend repository, the best place to discuss it would be in the
-[#wg-frontend channel](https://openedx.slack.com/archives/C04BM6YC7A6).
-
-For anything non-trivial, the best path is to open an issue in this repository
-with as many details about the issue you are facing as you can provide:
-<https://github.com/openedx/frontend-template-application/issues>
-
-For more information about these options, see the
-[Getting Help](https://openedx.org/getting-help) page.
-
-## License
-
-The code in this repository is licensed under the AGPLv3 unless otherwise
-noted.
-
-Please see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions are very welcome. Please read
-[How To Contribute](https://openedx.org/r/how-to-contribute) for details.
-
-This project is currently accepting all types of contributions, bug fixes,
-security fixes, maintenance work, or new features. However, please make sure
-to have a discussion about your new feature idea with the maintainers prior to
-beginning development to maximize the chances of your change being accepted.
-You can start a conversation by creating a new issue on this repo summarizing
-your idea.
-
-## The Open edX Code of Conduct
-
-All community members are expected to follow the
-[Open edX Code of Conduct](https://openedx.org/code-of-conduct/).
-
-## People
-
-The assigned maintainers for this component and other project details may be
-found in
-[Backstage](https://open-edx-backstage.herokuapp.com/catalog/default/component/frontend-template-application).
-Backstage pulls this data from the `catalog-info.yaml` file in this repo.
-
-## Reporting Security Issues
-
-Please do not report security issues in public, and email
-<security@openedx.org> instead.
+Before release, test real LMS session/JWT authentication, browser refresh at
+both routes, role changes/logout, dashboard and author-console embedding,
+locales/themes, and desktop/mobile navigation in standalone MFEs and the
+frontend-base site. See [upgrade validation](docs/verawood-validation.md) for
+dependency and build findings. Project release numbering is managed manually.
