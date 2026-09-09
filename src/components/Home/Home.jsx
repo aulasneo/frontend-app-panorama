@@ -3,7 +3,7 @@ import { DashboardTypeContext } from '../DashboardContext';
 import EmbedHome from './EmbedHome';
 
 const Home = () => {
-  const { homeMode } = useContext(DashboardTypeContext);
+  const { homeMode, error } = useContext(DashboardTypeContext);
 
   let iframeSrc = null;
   if (homeMode === 'FREE') {
@@ -20,7 +20,8 @@ const Home = () => {
     <div className="dashboard" id="dashboard">
       <EmbedHome />
       <div className="framesContainerHome" id="framesContainerHome">
-        {iframeSrc && (
+        {error && <p role="alert">{error}</p>}
+        {!error && iframeSrc && (
           <iframe className="homes-iframe" src={iframeSrc} title="Home Mode" />
         )}
       </div>

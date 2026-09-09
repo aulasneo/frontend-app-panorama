@@ -4,6 +4,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { camelCaseObject } from '@edx/frontend-platform';
 import { DashboardTypeContext } from './DashboardContext';
+import getApiErrorMessage from './errors';
 
 const getQuickSightErrorMessage = (event) => {
   if (event?.message?.errorCode) {
@@ -39,20 +40,24 @@ const isQuickSightContentErrorEvent = (event) => event?.eventName === 'ERROR_OCC
 
 const QuickSightConsoleFrame = () => {
   const containerRef = useRef(null);
+  const embeddingContextRef = useRef(null);
   const {
     changeError,
     changeLoader,
     currentView,
+    userRole,
   } = useContext(DashboardTypeContext);
   const { config } = useContext(AppContext);
 
   useEffect(() => {
-    if (currentView !== 'STUDIO' || !containerRef.current) {
+    if (currentView !== 'STUDIO' || userRole !== 'AUTHOR' || !containerRef.current) {
       return undefined;
     }
 
     let isCancelled = false;
-    const container = containerRef.current;
+    const container = document.createElement('div');
+    container.style.width = '100%';
+    containerRef.current.replaceChildren(container);
 
     const mountConsole = async () => {
       changeLoader(true);
@@ -63,6 +68,7 @@ const QuickSightConsoleFrame = () => {
         const { data } = await getAuthenticatedHttpClient().get(
           `${config.LMS_BASE_URL}/panorama/api/get-studio-url`,
         );
+        if (isCancelled) { return; }
         const studioData = camelCaseObject(data).body;
         const consoleUrl = studioData?.[0]?.url;
 
@@ -76,9 +82,13 @@ const QuickSightConsoleFrame = () => {
           }
         };
 
-        const embeddingContext = await createEmbeddingContext({
-          onChange: onQuickSightChange,
-        });
+        if (!embeddingContextRef.current) {
+          embeddingContextRef.current = createEmbeddingContext().catch((error) => {
+            embeddingContextRef.current = null;
+            throw error;
+          });
+        }
+        const embeddingContext = await embeddingContextRef.current;
 
         if (isCancelled || !container) {
           return;
@@ -103,7 +113,7 @@ const QuickSightConsoleFrame = () => {
         });
       } catch (error) {
         if (!isCancelled) {
-          changeError(error?.message || 'QuickSight embedding failed');
+          changeError(error?.response ? getApiErrorMessage(error) : 'QuickSight embedding failed');
         }
       } finally {
         if (!isCancelled) {
@@ -116,9 +126,9 @@ const QuickSightConsoleFrame = () => {
 
     return () => {
       isCancelled = true;
-      container.replaceChildren();
+      container.remove();
     };
-  }, [changeError, changeLoader, config.LMS_BASE_URL, currentView]);
+  }, [changeError, changeLoader, config.LMS_BASE_URL, currentView, userRole]);
 
   return (
     <div

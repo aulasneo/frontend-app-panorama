@@ -59,17 +59,10 @@ const getStudentParametersFromUrl = (url) => {
 
 const QuickSightFrame = ({ dashboard, isActive }) => {
   const containerRef = useRef(null);
-  const hasEmbeddedRef = useRef(false);
+  const embeddingContextRef = useRef(null);
   const { changeError, userRole } = useContext(DashboardTypeContext);
   const dashboardName = dashboard.name;
   const dashboardUrl = dashboard.url;
-
-  useEffect(() => {
-    hasEmbeddedRef.current = false;
-    if (containerRef.current) {
-      containerRef.current.replaceChildren();
-    }
-  }, [dashboardUrl]);
 
   useEffect(() => {
     if (!isActive || !dashboardUrl || !userRole || !containerRef.current) {
@@ -77,7 +70,10 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
     }
 
     let isCancelled = false;
-    const container = containerRef.current;
+    // Each mount owns its node, so late SDK work only touches a detached node.
+    const container = document.createElement('div');
+    container.style.width = '100%';
+    containerRef.current.replaceChildren(container);
 
     const mountDashboard = async () => {
       try {
@@ -89,9 +85,15 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
           }
         };
 
-        const embeddingContext = await createEmbeddingContext({
-          onChange: onQuickSightChange,
-        });
+        // Reuse the SDK control context across tab switches. Frame callbacks
+        // belong to the current mount; context callbacks must not capture it.
+        if (!embeddingContextRef.current) {
+          embeddingContextRef.current = createEmbeddingContext().catch((error) => {
+            embeddingContextRef.current = null;
+            throw error;
+          });
+        }
+        const embeddingContext = await embeddingContextRef.current;
 
         if (isCancelled || !container) {
           return;
@@ -129,8 +131,6 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
             }
             : contentOptions,
         );
-
-        hasEmbeddedRef.current = true;
       } catch (error) {
         if (!isCancelled) {
           changeError(error?.message || 'QuickSight embedding failed');
@@ -138,12 +138,11 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
       }
     };
 
-    if (!hasEmbeddedRef.current) {
-      mountDashboard();
-    }
+    mountDashboard();
 
     return () => {
       isCancelled = true;
+      container.remove();
     };
   }, [
     changeError,

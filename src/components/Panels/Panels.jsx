@@ -14,7 +14,7 @@ const Panels = () => {
 
   return (
     <div className="dashboard" id="dashboard">
-      {!error && <Embed />}
+      <Embed />
       <Tabs />
       {currentView === 'DASHBOARDS' && (
         <div className="framesContainer" id="framesContainer">
@@ -39,7 +39,7 @@ const Panels = () => {
       )}
       {error && (
         <div className="modal-container">
-          <div className="warning-modal">
+          <div className="warning-modal" role="alert">
             <p className="modal-title">ERROR</p>
             {error}
           </div>

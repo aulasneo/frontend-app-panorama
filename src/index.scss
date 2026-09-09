@@ -1,7 +1,5 @@
-@import "~@edx/brand/paragon/fonts";
-@import "~@edx/brand/paragon/variables";
-@import "~@openedx/paragon/styles/scss/core/core";
-@import "~@edx/brand/paragon/overrides";
+// Verawood's frontend-platform loads the Paragon/brand CSS theme at runtime.
+// Keep only component/application styles here, as in the learning MFE.
 
 @import './example/index.scss';
 
