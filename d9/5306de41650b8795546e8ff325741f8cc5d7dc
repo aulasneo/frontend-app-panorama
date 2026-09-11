@@ -1,0 +1,29 @@
+.gitignore
+  s_cbfc77dce0cd61::t_04e7a19af39d0f 20
+package-lock.json
+  s_2c389bc3020de6::t_af27dff956e776 2928-2949,2956
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d95306de41650b8795546e8ff325741f8cc5d7dc",
+  "prompts": {},
+  "sessions": {
+    "s_2c389bc3020de6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a091cf-fad6-7312-a76f-3a4f0a73b932",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    },
+    "s_cbfc77dce0cd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4fbfe51-c8c3-4dc0-96c0-809abfe8f4df",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
