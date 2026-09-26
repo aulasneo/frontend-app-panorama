@@ -27,6 +27,7 @@
 }
 
 .content-tabs {
+  position: relative;
   flex-direction: column;
   height: calc(100vh - 162px);
   width: 29px;
@@ -69,8 +70,8 @@
   font-weight: 300;
   overflow-wrap: break-word;
   cursor: pointer;
-  left: 36px;
-  top: 63px;
+  left: 100%;
+  top: 0;
   position: absolute;
   transition: 0.5s ease;
   overflow-y: auto;

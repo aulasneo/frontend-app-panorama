@@ -1,7 +1,5 @@
-@import "@edx/brand/paragon/fonts.scss";
-@import "@edx/brand/paragon/variables.scss";
-@import "@openedx/paragon/scss/core/core.scss";
-@import "@edx/brand/paragon/overrides.scss";
+// Verawood's frontend-platform loads the Paragon/brand CSS theme at runtime.
+// Keep only component/application styles here, as in the learning MFE.
 
 @import './example/index.scss';
 
@@ -33,6 +31,13 @@
     height: calc(100vh - 161px);
 }
 
+.circularProgressOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: rgba(246, 246, 246, 0.9);
+}
+
 .dashboard {
     width: 100%;
     display: flex;
@@ -41,15 +46,19 @@
     align-items: flex-end;
     align-content: center;
     overflow: hidden;
+    min-height: calc(100vh - 161px);
+    position: relative;
 }
 
 .quicksight-embedding-iframe {
+    width: 100%;
     height: calc(100vh - 162px);
 }
 
 .framesContainer {
     width: 100%;
     border: 1px solid var(--tabs-border-color);
+    min-height: calc(100vh - 161px);
 }
 
 .framesContainerHome {

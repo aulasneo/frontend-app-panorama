@@ -3,38 +3,43 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { DashboardTypeContext } from '../DashboardContext';
 import Tabs from '../Tabs/Tabs';
 import Embed from '../Embed';
+import QuickSightConsoleFrame from '../QuickSightConsoleFrame';
+import QuickSightFrame from '../QuickSightFrame';
 import './stylesPanels.css';
 
 const Panels = () => {
   const {
-    dashboardType, loader, error, response,
+    dashboardType, currentView, loader, error, response,
   } = useContext(DashboardTypeContext);
 
   return (
     <div className="dashboard" id="dashboard">
-      {!error && <Embed />}
+      <Embed />
       <Tabs />
-      {!error && loader ? (
-        <div className="circularProgress">
-          <CircularProgress />
-        </div>
-      ) : (
+      {currentView === 'DASHBOARDS' && (
         <div className="framesContainer" id="framesContainer">
           {response && response.map((item) => (
-            <div
+            <QuickSightFrame
               key={item.name}
-              style={{
-                width: '100%',
-                display: dashboardType === item.displayName ? 'flex' : 'none',
-              }}
-              id={`${item.name}Container`}
+              dashboard={item}
+              isActive={dashboardType === item.displayName}
             />
           ))}
         </div>
       )}
+      {currentView === 'STUDIO' && (
+        <div className="framesContainer" id="framesContainer">
+          <QuickSightConsoleFrame />
+        </div>
+      )}
+      {!error && loader && (
+        <div className="circularProgress circularProgressOverlay">
+          <CircularProgress />
+        </div>
+      )}
       {error && (
         <div className="modal-container">
-          <div className="warning-modal">
+          <div className="warning-modal" role="alert">
             <p className="modal-title">ERROR</p>
             {error}
           </div>

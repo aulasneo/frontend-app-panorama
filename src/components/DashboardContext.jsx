@@ -1,9 +1,12 @@
-import React, { useState, createContext, useMemo } from 'react';
+import React, {
+  useState, createContext, useMemo, useCallback,
+} from 'react';
 import PropTypes from 'prop-types';
 
 export const DashboardTypeContext = createContext({
   dashboardType: '',
   changeDashboardType: () => { },
+  changeCurrentView: () => { },
   changeUserRole: () => { },
   changeError: () => { },
   changeLoader: () => { },
@@ -15,45 +18,46 @@ export const DashboardTypeContext = createContext({
 
 export const DashboardTypeProvider = ({ children }) => {
   const [dashboardType, setDashboardType] = useState('');
+  const [currentView, setCurrentView] = useState('DASHBOARDS');
   const [loader, setLoader] = useState(true);
   const [error, setError] = useState(null);
   const [response, setResponse] = useState('');
-  const [dashboardFunction, setDashboardFunction] = useState('READER');
   const [homeMode, setHomeMode] = useState('');
   const [userRole, setUserRole] = useState('');
 
-  const changeUserRole = (value) => {
+  const changeUserRole = useCallback((value) => {
     setUserRole(value);
-  };
+  }, []);
 
-  const changeDashboardFunction = (value) => {
-    setDashboardFunction(value);
-  };
-
-  const changeDashboardType = (value) => {
+  const changeCurrentView = useCallback((value) => {
+    setCurrentView(value);
+  }, []);
+  const changeDashboardType = useCallback((value) => {
     setDashboardType(value);
-  };
+  }, []);
 
-  const changeHomeMode = (value) => {
+  const changeHomeMode = useCallback((value) => {
     setHomeMode(value);
-  };
+  }, []);
 
-  const handleDataReceived = (data) => {
+  const handleDataReceived = useCallback((data) => {
     setResponse(data);
-  };
+  }, []);
 
-  const changeError = (newError) => {
+  const changeError = useCallback((newError) => {
     setError(newError);
-  };
+  }, []);
 
-  const changeLoader = (newLoader) => {
+  const changeLoader = useCallback((newLoader) => {
     setLoader(newLoader);
-  };
+  }, []);
 
   const contextValue = useMemo(
     () => ({
       dashboardType,
       changeDashboardType,
+      currentView,
+      changeCurrentView,
       handleDataReceived,
       changeHomeMode,
       changeError,
@@ -61,13 +65,26 @@ export const DashboardTypeProvider = ({ children }) => {
       loader,
       error,
       response,
-      changeDashboardFunction,
-      dashboardFunction,
       homeMode,
       userRole,
       changeUserRole,
     }),
-    [dashboardType, loader, error, response, userRole, dashboardFunction, homeMode],
+    [
+      changeCurrentView,
+      changeDashboardType,
+      changeError,
+      changeHomeMode,
+      changeLoader,
+      changeUserRole,
+      currentView,
+      dashboardType,
+      error,
+      handleDataReceived,
+      homeMode,
+      loader,
+      response,
+      userRole,
+    ],
   );
 
   return (
