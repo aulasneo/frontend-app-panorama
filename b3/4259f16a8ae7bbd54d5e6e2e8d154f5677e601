@@ -1,0 +1,22 @@
+README.md
+  s_2c389bc3020de6::t_90a9209711f36b 66
+docs/change-to-authorization-for-Amazon-Quick-embedding-API.md
+  s_2c389bc3020de6::t_020caec94da3b1 34
+  s_2c389bc3020de6::t_90a9209711f36b 3,12-23,27-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b34259f16a8ae7bbd54d5e6e2e8d154f5677e601",
+  "prompts": {},
+  "sessions": {
+    "s_2c389bc3020de6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a091cf-fad6-7312-a76f-3a4f0a73b932",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
