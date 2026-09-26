@@ -1,0 +1,38 @@
+docs/verawood-validation.md
+  s_2c389bc3020de6::t_f672afc9bac8ab 68-78,83-87
+  s_2c389bc3020de6::t_88268e1751ba1c 79-82
+src/setupTest.js
+  s_2c389bc3020de6::t_fcd7ad0e8bf70e 3-5
+src/components/embedding.test.jsx
+  s_2c389bc3020de6::t_dc8d26f513a650 6,63-74,88-91,107-147,277,287-315
+  s_2c389bc3020de6::t_42108a74eff1b1 246-260
+  s_2c389bc3020de6::t_3d2e3179d1805f 316
+src/components/Tabs/Tabs.jsx
+  s_2c389bc3020de6::t_698d93458df073 1,15,63-64,66,68-69,71
+src/components/Tabs/stylesTabs.css
+  s_2c389bc3020de6::t_698d93458df073 30,73-74,132
+src/components/Home/EmbedHome.jsx
+  s_2c389bc3020de6::t_dc8d26f513a650 12,16,31
+README.md
+  s_2c389bc3020de6::t_93dc60039980cd 64-67
+src/components/QuickSightConsoleFrame.jsx
+  s_2c389bc3020de6::t_dc8d26f513a650 129
+docs/change-to-authorization-for-Amazon-Quick-embedding-API.md
+  s_2c389bc3020de6::t_93dc60039980cd 1-53,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0a7ea9f013edbbed4d9b7350ea3b3e94d49fe8d",
+  "prompts": {},
+  "sessions": {
+    "s_2c389bc3020de6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a091cf-fad6-7312-a76f-3a4f0a73b932",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Andrés González <andres@aulasneo.com>"
+    }
+  }
+}
