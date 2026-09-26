@@ -1,6 +1,6 @@
 # QuickSight embedding authorization: Panorama impact
 
-## Project assessment and required follow-up
+## Project assessment and recommended follow-up
 
 The AWS Health notification preserved below announces an authorization change
 starting September 16, 2026. As of September 25, 2026, that date has passed;
@@ -9,22 +9,29 @@ The account-specific Health event and deployed IAM policies have not been
 verified by this repository review, so this note does not establish that any
 installation is affected or that remediation is complete.
 
-Panorama's `panorama-openedx-backend` calls
-`quicksight:GenerateEmbedUrlForRegisteredUser` for CUSTOM-mode dashboards and
-Studio console URLs. It supplies `UserArn` from the user's access configuration
-or `PANORAMA_DEFAULT_USER_ARN`. These paths use the API covered by the notice;
-DEMO, FREE, and SAAS dashboard URLs come from external providers, whose owners
-must confirm whether their own embedding calls are affected. The frontend
-receives URLs and cannot repair the caller's IAM permissions. The backend must
-continue enforcing Panorama access grants and AUTHOR-only Studio access.
+This frontend requests dashboard URLs from `/panorama/api/get-embed-url`
+without branching on deployment mode, and requests author Studio URLs from
+`/panorama/api/get-studio-url`. Home pages for CUSTOM, FREE, SAAS, and DEMO are
+loaded from the same S3 host; those static page URLs do not establish how
+dashboard or Studio embedding URLs are generated.
+
+The per-mode use of `quicksight:GenerateEmbedUrlForRegisteredUser` must be
+verified in the deployed `panorama-openedx-backend` version and any external
+embedding providers it uses. Do not exclude non-CUSTOM installations from
+review based on their mode or Home page host. The frontend receives embedding
+URLs and cannot repair the caller's IAM permissions. The backend must continue
+enforcing Panorama access grants and AUTHOR-only Studio access.
 
 The backend/deployment owner should:
 
-1. Identify the IAM principal used for embedding in each deployment. Review its
-   allow and deny statements for `quicksight:GenerateEmbedUrlForRegisteredUser`,
-   including resource restrictions and any applicable policy conditions.
-2. Compare every configured `UserArn`, including the default, with the registered
-   user's canonical ARN:
+1. Trace dashboard and Studio URL generation in the deployed backend and any
+   external providers for each enabled mode. Where the affected API is used,
+   identify its calling IAM principal and review its allow and deny statements
+   for `quicksight:GenerateEmbedUrlForRegisteredUser`, including resource
+   restrictions and any applicable policy conditions. Coordinate with provider
+   owners for calls outside the deployment's control.
+2. For affected API calls, compare every configured `UserArn`, including any
+   default, with the registered user's canonical ARN:
    `arn:<partition>:quicksight:<region>:<account-id>:user/<namespace>/<user>`.
    Check the registration Region, account, partition, and namespace; do not
    assume they match the dashboard's location. Correct mismatched policy

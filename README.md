@@ -63,5 +63,5 @@ locales/themes, and desktop/mobile navigation in standalone MFEs and the
 frontend-base site. See [upgrade validation](docs/verawood-validation.md) for
 dependency and build findings, and the
 [QuickSight authorization change](docs/change-to-authorization-for-Amazon-Quick-embedding-API.md)
-for backend IAM review and deployment verification required by the September 16,
+for backend IAM review and deployment verification recommended by the September 16,
 2026 AWS notice. Project release numbering is managed manually.
