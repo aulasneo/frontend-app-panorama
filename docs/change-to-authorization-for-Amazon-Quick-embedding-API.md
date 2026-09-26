@@ -1,3 +1,56 @@
+# QuickSight embedding authorization: Panorama impact
+
+## Project assessment and required follow-up
+
+The AWS Health notification preserved below announces an authorization change
+starting September 16, 2026. As of September 25, 2026, that date has passed;
+deployment owners should verify their policies and embedding behavior now.
+The account-specific Health event and deployed IAM policies have not been
+verified by this repository review, so this note does not establish that any
+installation is affected or that remediation is complete.
+
+Panorama's `panorama-openedx-backend` calls
+`quicksight:GenerateEmbedUrlForRegisteredUser` for CUSTOM-mode dashboards and
+Studio console URLs. It supplies `UserArn` from the user's access configuration
+or `PANORAMA_DEFAULT_USER_ARN`. These paths use the API covered by the notice;
+DEMO, FREE, and SAAS dashboard URLs come from external providers, whose owners
+must confirm whether their own embedding calls are affected. The frontend
+receives URLs and cannot repair the caller's IAM permissions. The backend must
+continue enforcing Panorama access grants and AUTHOR-only Studio access.
+
+The backend/deployment owner should:
+
+1. Identify the IAM principal used for embedding in each deployment. Review its
+   allow and deny statements for `quicksight:GenerateEmbedUrlForRegisteredUser`,
+   including resource restrictions and any applicable policy conditions.
+2. Compare every configured `UserArn`, including the default, with the registered
+   user's canonical ARN:
+   `arn:<partition>:quicksight:<region>:<account-id>:user/<namespace>/<user>`.
+   Check the registration Region, account, partition, and namespace; do not
+   assume they match the dashboard's location. Correct mismatched policy
+   resources or user mappings while preserving intended access restrictions.
+   Both previously allowed and previously denied calls need verification under
+   the evaluation described in the notice.
+3. Test dashboard and Studio URL generation using the actual deployment
+   principal and representative users. Confirm intended users succeed and
+   unauthorized users remain denied. Record the deployment, policy revision,
+   test date, and results in the deployment's validation record. Frontend mocks
+   do not exercise AWS authorization.
+
+AWS documents the required registered-user ARN in the
+[embedding API reference](https://docs.aws.amazon.com/quicksight/latest/APIReference/API_GenerateEmbedUrlForRegisteredUser.html)
+and explains resource identifiers in
+[QuickSight resource ARNs](https://docs.aws.amazon.com/quicksight/latest/developerguide/resource-arns.html).
+The September 16 date and canonical-identity evaluation change are taken from
+the archived notification below; use its AWS Health link to check account-specific
+status with the account owner.
+
+## Archived AWS Health notification
+
+The following text is the original AWS notice, retained for reference. Its
+references to "your account" refer to the recipient of that notice, not every
+Panorama deployment.
+
 As part of our ongoing work to strengthen the security posture of Amazon Quick, we are improving the consistency and correctness of how AWS Identity and Access Management (IAM) policies are evaluated when your application calls this embedding API. This change ensures that the authorization decision for an embedding request is always evaluated against the canonical identity of the Quick specified user named in the request - that is, the user identity as defined by the exact partition, Region, account, and namespace where that user was originally registered.
 
 Beginning on September 16, 2026, IAM authorization for GenerateEmbedUrlForRegisteredUser calls will be evaluated using the canonical Amazon Quick user identity referenced in your request. After this change, the allow or deny outcome of your IAM policies will consistently reflect that canonical identity across all components of the user ARN.
@@ -37,4 +90,4 @@ If you have questions or need assistance reviewing your configuration, please re
 
 
 ---
-Reference: https://health.aws.amazon.com/health/home?region=us-east-1#/event-log?eventID=arn:aws:health:us-east-1::event/QUICKSIGHT/AWS_QUICKSIGHT_SECURITY_NOTIFICATION/AWS_QUICKSIGHT_SECURITY_NOTIFICATION_65ef5e02c8f788375e1ebaf5a8ed45d32a9f86590b0a94d6b29f59bd44d0ebf7&amp;eventTab=details
+Reference: https://health.aws.amazon.com/health/home?region=us-east-1#/event-log?eventID=arn:aws:health:us-east-1::event/QUICKSIGHT/AWS_QUICKSIGHT_SECURITY_NOTIFICATION/AWS_QUICKSIGHT_SECURITY_NOTIFICATION_65ef5e02c8f788375e1ebaf5a8ed45d32a9f86590b0a94d6b29f59bd44d0ebf7&eventTab=details

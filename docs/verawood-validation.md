@@ -65,9 +65,26 @@ This matches the Verawood learning MFE pattern. Verify browser stylesheet reques
 computed styles and theme switching with the deployed brand. Full shell theme
 ownership moves with the separately planned frontend-base application migration.
 
-Final local validation: Node 24.17.0 clean install, lint, 22 tests and production
-build passed. Generated cross-plugin bundle results are recorded in the Tutor
-plugin's `docs/verawood-validation.md`.
+The original Node 24.17.0 validation passed a clean install, lint, 22 tests and
+production build. A baseline rerun on 2026-09-25 confirmed 22 tests across two
+suites; counting only `test(` declarations misses parameterized `test.each` cases.
+
+After the review fixes, `npm test -- --runInBand` passes **31 tests across two
+suites** on Node 24.17.0. Regression coverage includes Home mode resets on
+navigation, LMS and session changes; stale Home responses; Studio loader cleanup
+during URL, SDK and console initialization; stable tab identities with duplicate
+labels; and exact URLs for all four backend endpoints. React's act environment
+is configured once in the shared Jest setup.
+
+`npm run lint` and `npm run build` also pass after these fixes. The build reports
+three bundle/entrypoint size warnings and skips optional `PARAGON_THEME_URLS`
+loading because that environment variable is unset locally.
+
+A browser fixture using the repository styles verified that the tab menu stays
+aligned with its sidebar at header heights of 63px and 110px, while the loading
+overlay stays anchored to the dashboard. This isolated layout check does not
+replace the deployed theme and navigation checks below. Generated cross-plugin
+bundle results are recorded in the Tutor plugin's `docs/verawood-validation.md`.
 
 ## Staging gates
 

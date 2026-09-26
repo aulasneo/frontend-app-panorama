@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { DashboardTypeContext } from '../DashboardContext';
 import logo from '../../images/panorama-by-aulasneo-small.png';
 import './stylesTabs.css';
@@ -12,14 +12,8 @@ const Tabs = () => {
     response: dashboardResponse,
     userRole,
   } = useContext(DashboardTypeContext);
-  const [itemsMenu, setItemsMenu] = useState([]);
+  const itemsMenu = dashboardResponse || [];
   const [showTabs, setShowTabs] = useState(false);
-
-  useEffect(() => {
-    if (dashboardResponse && dashboardResponse.length > 0) {
-      setItemsMenu(dashboardResponse.map((item) => item.displayName));
-    }
-  }, [dashboardResponse]);
 
   const handleMenuClick = (value) => {
     changeDashboardType(value);
@@ -66,15 +60,15 @@ const Tabs = () => {
       <img alt="logo-panorama" src={logo} className="logo-panorama" />
       {(currentView === 'DASHBOARDS') && (
         <div className={`tab-container ${showTabs ? 'open' : 'close'}`}>
-          {itemsMenu.map((item) => (
-            <div id={`tab-${item}`} className="tab" key={item}>
+          {itemsMenu.map(({ name, displayName }) => (
+            <div id={`tab-${name}`} className="tab" key={name}>
               <a
-                className={`${item === dashboardType ? 'selected' : ''}`}
+                className={`${displayName === dashboardType ? 'selected' : ''}`}
                 aria-current="page"
-                href={`#${item}`}
-                onClick={() => handleMenuClick(item)}
+                href={`#${displayName}`}
+                onClick={() => handleMenuClick(displayName)}
               >
-                {item}
+                {displayName}
               </a>
             </div>
           ))}

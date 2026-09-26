@@ -126,6 +126,7 @@ const QuickSightConsoleFrame = () => {
 
     return () => {
       isCancelled = true;
+      changeLoader(false);
       container.remove();
     };
   }, [changeError, changeLoader, config.LMS_BASE_URL, currentView, userRole]);

@@ -61,4 +61,7 @@ Before release, test real LMS session/JWT authentication, browser refresh at
 both routes, role changes/logout, dashboard and author-console embedding,
 locales/themes, and desktop/mobile navigation in standalone MFEs and the
 frontend-base site. See [upgrade validation](docs/verawood-validation.md) for
-dependency and build findings. Project release numbering is managed manually.
+dependency and build findings, and the
+[QuickSight authorization change](docs/change-to-authorization-for-Amazon-Quick-embedding-API.md)
+for backend IAM review and deployment verification required by the September 16,
+2026 AWS notice. Project release numbering is managed manually.

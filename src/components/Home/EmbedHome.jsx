@@ -9,10 +9,11 @@ const EmbedHome = () => {
   const {
     changeHomeMode, changeError,
   } = useContext(DashboardTypeContext);
-  const { config } = useContext(AppContext);
+  const { config, authenticatedUser } = useContext(AppContext);
 
   useEffect(() => {
     let cancelled = false;
+    changeHomeMode('');
     changeError(null);
     const fetchData = async () => {
       try {
@@ -27,7 +28,7 @@ const EmbedHome = () => {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [changeError, changeHomeMode, config.LMS_BASE_URL]);
+  }, [changeError, changeHomeMode, config.LMS_BASE_URL, authenticatedUser]);
 
   return null;
 };

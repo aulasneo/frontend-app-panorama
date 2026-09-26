@@ -11,7 +11,6 @@ jest.mock('./components/Panels/Panels', () => function MockPanels() {
 });
 
 test.each([['/panorama/', 'Panorama home'], ['/panorama/panels', 'Panorama panels']])('supports standalone deep link %s with the Panorama basename', async (path, text) => {
-  global.IS_REACT_ACT_ENVIRONMENT = true;
   const host = document.createElement('div');
   const root = createRoot(host);
   await act(async () => root.render(
