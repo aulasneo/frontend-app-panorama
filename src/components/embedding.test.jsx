@@ -209,26 +209,99 @@ describe('Panorama authenticated embedding', () => {
     expect(embedDashboard).not.toHaveBeenCalled();
   });
 
+  test('fetches a fresh URL on delayed first activation and every tab revisit', async () => {
+    const dashboard = { name: 'one', url: 'https://qs.example/expired' };
+    await render(<QuickSightFrame dashboard={dashboard} isActive={false} />);
+    expect(get).not.toHaveBeenCalled();
+    get.mockResolvedValueOnce({
+      data: {
+        body: [
+          { name: 'other', url: 'https://qs.example/wrong-dashboard' },
+          { name: 'one', url: 'https://qs.example/fresh' },
+        ],
+      },
+    });
+    await render(<QuickSightFrame dashboard={dashboard} isActive />);
+    expect(embedDashboard.mock.calls[0][0].url).toBe('https://qs.example/fresh');
+    await render(<QuickSightFrame dashboard={dashboard} isActive={false} />);
+    get.mockResolvedValueOnce({ data: { body: [{ name: 'one', url: 'https://qs.example/fresh-again' }] } });
+    await render(<QuickSightFrame dashboard={dashboard} isActive />);
+    expect(embedDashboard.mock.calls[1][0].url).toBe('https://qs.example/fresh-again');
+    expect(get.mock.calls).toEqual([
+      ['https://lms.example/panorama/api/get-embed-url'],
+      ['https://lms.example/panorama/api/get-embed-url'],
+    ]);
+  });
+
+  test.each(['switch', 'unmount', 'user', 'LMS'])(
+    'ignores a stale dashboard URL response after %s',
+    async (transition) => {
+      const pending = deferred();
+      get.mockReturnValueOnce(pending.promise);
+      const dashboard = { name: 'one', url: 'https://qs.example/expired' };
+      await render(<QuickSightFrame dashboard={dashboard} isActive />);
+      if (transition === 'user') {
+        app = { ...app, authenticatedUser: { userId: 2 } };
+      } else if (transition === 'LMS') {
+        app = { ...app, config: { LMS_BASE_URL: 'https://new-lms.example' } };
+      }
+      get.mockResolvedValue({ data: { body: [{ name: 'one', url: 'https://qs.example/current' }] } });
+      await render(transition === 'unmount' ? null
+        : <QuickSightFrame dashboard={dashboard} isActive={transition !== 'switch'} />);
+      await act(async () => pending.resolve({ data: { body: [{ name: 'one', url: 'https://qs.example/stale' }] } }));
+      if (transition === 'user' || transition === 'LMS') {
+        expect(get).toHaveBeenLastCalledWith(`${app.config.LMS_BASE_URL}/panorama/api/get-embed-url`);
+        expect(embedDashboard).toHaveBeenCalledTimes(1);
+        expect(embedDashboard.mock.calls[0][0].url).toBe('https://qs.example/current');
+      } else {
+        expect(embedDashboard).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  test.each([401, 403, 500])('does not reuse a saved URL when renewal fails with %s', async (status) => {
+    get.mockRejectedValue(Object.assign(new Error('Request failed'), { response: { status } }));
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/saved' }} isActive />);
+    expect(embedDashboard).not.toHaveBeenCalled();
+    expect(context.changeError.mock.calls.at(-1)[0]).toMatch(/session has expired|do not have access|could not load/);
+  });
+
+  test('does not embed a dashboard removed from the refreshed grants', async () => {
+    get.mockResolvedValue({ data: { body: [] } });
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/saved' }} isActive />);
+    expect(embedDashboard).not.toHaveBeenCalled();
+    expect(context.changeError).toHaveBeenLastCalledWith(expect.stringContaining('no longer available'));
+  });
+
   test('isolates late SDK writes from a replacement dashboard and remounts safely', async () => {
+    get.mockResolvedValue({
+      data: {
+        body: [
+          { name: 'one', url: 'https://qs.example/old' },
+          { name: 'two', url: 'https://qs.example/new' },
+        ],
+      },
+    });
     const pending = deferred();
     embedDashboard.mockImplementationOnce(({ container }) => pending.promise.then(() => {
       container.append(document.createElement('iframe'));
     }));
     await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/old' }} isActive />);
     const oldContainer = embedDashboard.mock.calls[0][0].container;
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/new' }} isActive />);
+    await render(<QuickSightFrame dashboard={{ name: 'two' }} isActive />);
     await act(async () => pending.resolve());
     expect(oldContainer.isConnected).toBe(false);
     expect(host.querySelector('iframe')).toBeNull();
     expect(embedDashboard).toHaveBeenCalledTimes(2);
     await render(null);
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/new' }} isActive />);
+    await render(<QuickSightFrame dashboard={{ name: 'two' }} isActive />);
     expect(embedDashboard).toHaveBeenCalledTimes(3);
   });
 
   test('passes student parameters as data and reports SDK content errors', async () => {
     context.userRole = 'STUDENT';
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/#p.userId=7&p.lms=school' }} isActive />);
+    get.mockResolvedValue({ data: { body: [{ name: 'one', url: 'https://qs.example/#p.userId=7&p.lms=school' }] } });
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/#p.userId=old' }} isActive />);
     const options = embedDashboard.mock.calls[0][1];
     expect(options.parameters).toEqual([{ Name: 'userId', Values: ['7'] }, { Name: 'lms', Values: ['school'] }]);
     options.onMessage({ eventName: 'ERROR_OCCURRED', message: { errorCode: 'SESSION_EXPIRED' } });

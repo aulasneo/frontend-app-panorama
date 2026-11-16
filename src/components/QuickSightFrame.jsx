@@ -1,7 +1,11 @@
 import { useContext, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { createEmbeddingContext } from 'amazon-quicksight-embedding-sdk';
+import { AppContext } from '@edx/frontend-platform/react';
+import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { camelCaseObject } from '@edx/frontend-platform';
 import { DashboardTypeContext } from './DashboardContext';
+import getApiErrorMessage from './errors';
 
 const getQuickSightErrorMessage = (event) => {
   if (event?.message?.errorCode) {
@@ -61,11 +65,11 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
   const containerRef = useRef(null);
   const embeddingContextRef = useRef(null);
   const { changeError, userRole } = useContext(DashboardTypeContext);
+  const { config, authenticatedUser } = useContext(AppContext);
   const dashboardName = dashboard.name;
-  const dashboardUrl = dashboard.url;
 
   useEffect(() => {
-    if (!isActive || !dashboardUrl || !userRole || !containerRef.current) {
+    if (!isActive || !dashboardName || !userRole || !containerRef.current) {
       return undefined;
     }
 
@@ -97,6 +101,19 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
 
         if (isCancelled || !container) {
           return;
+        }
+
+        // URLs expire after five minutes and can only be redeemed once. Fetch
+        // after SDK initialization, for every mount, including tab revisits.
+        const { data } = await getAuthenticatedHttpClient().get(
+          `${config.LMS_BASE_URL}/panorama/api/get-embed-url`,
+        );
+        if (isCancelled) { return; }
+        const dashboards = camelCaseObject(data).body;
+        const dashboardUrl = Array.isArray(dashboards)
+          ? dashboards.find((item) => item.name === dashboardName)?.url : null;
+        if (!dashboardUrl) {
+          throw new Error('Dashboard is no longer available. Reload Panorama to update your dashboards.');
         }
 
         const frameOptions = {
@@ -133,7 +150,7 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
         );
       } catch (error) {
         if (!isCancelled) {
-          changeError(error?.message || 'QuickSight embedding failed');
+          changeError(error?.response ? getApiErrorMessage(error) : error?.message || 'QuickSight embedding failed');
         }
       }
     };
@@ -146,7 +163,9 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
     };
   }, [
     changeError,
-    dashboardUrl,
+    dashboardName,
+    config.LMS_BASE_URL,
+    authenticatedUser,
     isActive,
     userRole,
   ]);
@@ -166,7 +185,6 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
 QuickSightFrame.propTypes = {
   dashboard: PropTypes.shape({
     name: PropTypes.string.isRequired,
-    url: PropTypes.string.isRequired,
   }).isRequired,
   isActive: PropTypes.bool.isRequired,
 };

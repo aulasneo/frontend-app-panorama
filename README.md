@@ -47,9 +47,18 @@ access denial. Role or dashboard failures stop the loader and display an error.
 An authentication change reloads grants and clears the previous role/content.
 
 QuickSight initialization owns a disposable container for each active mount.
-Switching dashboards, changing URLs/roles, or unmounting detaches that container,
+Switching dashboards, changing users/LMS/roles, or unmounting detaches that container,
 so an older asynchronous SDK operation cannot inject a frame into a newer view.
-Switching back creates a fresh embed. Student URL fragment parameters are passed
+Every active mount requests fresh URLs from `get-embed-url` after SDK initialization
+and selects the dashboard by its stable `name`; URLs saved with the initial tab
+list are never reused. This includes first visits to inactive tabs and tab revisits.
+[QuickSight embed URLs](https://docs.aws.amazon.com/quicksight/latest/APIReference/API_GenerateEmbedUrlForRegisteredUser.html)
+are single-use and expire after five minutes, independently of the session lifetime.
+The existing endpoint generates the full granted list on each request, so switching
+tabs adds a backend request and may generate unused URLs for other dashboards.
+Verify a first visit after more than five minutes and switching away/back against
+live QuickSight before release; mocked tests cannot establish provider behavior.
+Student URL fragment parameters from the fresh response are passed
 through for compatibility; they are **not** an authorization boundary. Staging
 must verify dataset-side isolation with tampered `userId` and `lms` parameters.
 
