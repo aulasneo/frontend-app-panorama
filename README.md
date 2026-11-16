@@ -5,6 +5,11 @@ author console access. Tutor installs it at `/panorama/`; `/panorama/panels` is
 the dashboard deep link. The LMS `panorama-openedx-backend` supplies dashboard
 URLs and Panorama roles using the platform's authenticated HTTP client.
 
+The mode-specific home page HTML served from the `panorama-home-pages` S3 bucket
+is maintained in the separate `panorama-home-pages` repository. Its analytics
+button asks this MFE to navigate to `/panorama/panels` through a checked
+`postMessage` event, so navigation works when browsers suppress referrers.
+
 ## Development and verification
 
 Use Node 24 (see `.nvmrc`) and the committed npm lockfile:

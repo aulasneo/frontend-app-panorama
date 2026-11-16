@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { AppContext } from '@edx/frontend-platform/react';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { createEmbeddingContext } from 'amazon-quicksight-embedding-sdk';
@@ -9,6 +10,11 @@ import QuickSightFrame from './QuickSightFrame';
 import QuickSightConsoleFrame from './QuickSightConsoleFrame';
 import Tabs from './Tabs/Tabs';
 import Home from './Home/Home';
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <span data-testid="location">{location.pathname}</span>;
+};
 
 // Jest hoists this factory before React imports are initialized.
 // eslint-disable-next-line global-require
@@ -35,9 +41,11 @@ describe('Panorama authenticated embedding', () => {
     await act(async () => {
       root.render(
         <AppContext.Provider value={app}>
-          <DashboardTypeContext.Provider value={context}>
-            {child}
-          </DashboardTypeContext.Provider>
+          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <DashboardTypeContext.Provider value={context}>
+              {child}
+            </DashboardTypeContext.Provider>
+          </MemoryRouter>
         </AppContext.Provider>,
       );
     });
@@ -102,6 +110,30 @@ describe('Panorama authenticated embedding', () => {
     context = { ...context, error: message };
     await render(<Home />);
     expect(host.querySelector('[role="alert"]').textContent).toBe(message);
+  });
+
+  test('opens panels only for a message from the active home iframe', async () => {
+    context = { ...context, homeMode: 'SAAS' };
+    await render(<><Home /><LocationProbe /></>);
+    const iframe = host.querySelector('iframe');
+    expect(iframe.src).toBe('https://panorama-home-pages.s3.amazonaws.com/panorama-saas-home.html?navigation=message');
+
+    const sendMessage = async (origin, source, type = 'panorama:navigate-panels') => {
+      await act(async () => {
+        window.dispatchEvent(new MessageEvent('message', {
+          origin,
+          source,
+          data: { type },
+        }));
+      });
+    };
+    await sendMessage('https://untrusted.example', iframe.contentWindow);
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', window);
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', iframe.contentWindow, 'unrelated');
+    expect(host.querySelector('[data-testid="location"]').textContent).toBe('/');
+
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', iframe.contentWindow);
+    expect(host.querySelector('[data-testid="location"]').textContent).toBe('/panels');
   });
 
   test.each(['revisit', 'LMS change', 'logout', 'login'])(
