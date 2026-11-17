@@ -10,6 +10,7 @@ export const DashboardTypeContext = createContext({
   changeUserRole: () => { },
   changeError: () => { },
   changeLoader: () => { },
+  beginLoading: () => () => { },
   changeHomeMode: () => { },
   handleDataReceived: () => { },
   itemsMenu: [],
@@ -20,6 +21,7 @@ export const DashboardTypeProvider = ({ children }) => {
   const [dashboardType, setDashboardType] = useState('');
   const [currentView, setCurrentView] = useState('DASHBOARDS');
   const [loader, setLoader] = useState(true);
+  const [pendingLoads, setPendingLoads] = useState(0);
   const [error, setError] = useState(null);
   const [response, setResponse] = useState('');
   const [homeMode, setHomeMode] = useState('');
@@ -52,6 +54,19 @@ export const DashboardTypeProvider = ({ children }) => {
     setLoader(newLoader);
   }, []);
 
+  // Each asynchronous frame load releases only its own share of the loader.
+  // Cleanup and finally may both run, so the release must be idempotent.
+  const beginLoading = useCallback(() => {
+    setPendingLoads((count) => count + 1);
+    let finished = false;
+    return () => {
+      if (!finished) {
+        finished = true;
+        setPendingLoads((count) => count - 1);
+      }
+    };
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       dashboardType,
@@ -62,7 +77,8 @@ export const DashboardTypeProvider = ({ children }) => {
       changeHomeMode,
       changeError,
       changeLoader,
-      loader,
+      beginLoading,
+      loader: loader || pendingLoads > 0,
       error,
       response,
       homeMode,
@@ -75,6 +91,7 @@ export const DashboardTypeProvider = ({ children }) => {
       changeError,
       changeHomeMode,
       changeLoader,
+      beginLoading,
       changeUserRole,
       currentView,
       dashboardType,
@@ -82,6 +99,7 @@ export const DashboardTypeProvider = ({ children }) => {
       handleDataReceived,
       homeMode,
       loader,
+      pendingLoads,
       response,
       userRole,
     ],

@@ -64,7 +64,7 @@ const getStudentParametersFromUrl = (url) => {
 const QuickSightFrame = ({ dashboard, isActive }) => {
   const containerRef = useRef(null);
   const embeddingContextRef = useRef(null);
-  const { changeError, userRole } = useContext(DashboardTypeContext);
+  const { changeError, beginLoading, userRole } = useContext(DashboardTypeContext);
   const { config, authenticatedUser } = useContext(AppContext);
   const dashboardName = dashboard.name;
 
@@ -74,6 +74,7 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
     }
 
     let isCancelled = false;
+    const finishLoading = beginLoading();
     // Each mount owns its node, so late SDK work only touches a detached node.
     const container = document.createElement('div');
     container.style.width = '100%';
@@ -152,6 +153,8 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
         if (!isCancelled) {
           changeError(error?.response ? getApiErrorMessage(error) : error?.message || 'QuickSight embedding failed');
         }
+      } finally {
+        finishLoading();
       }
     };
 
@@ -159,10 +162,12 @@ const QuickSightFrame = ({ dashboard, isActive }) => {
 
     return () => {
       isCancelled = true;
+      finishLoading();
       container.remove();
     };
   }, [
     changeError,
+    beginLoading,
     dashboardName,
     config.LMS_BASE_URL,
     authenticatedUser,

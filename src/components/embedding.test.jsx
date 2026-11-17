@@ -10,6 +10,7 @@ import QuickSightFrame from './QuickSightFrame';
 import QuickSightConsoleFrame from './QuickSightConsoleFrame';
 import Tabs from './Tabs/Tabs';
 import Home from './Home/Home';
+import Panels from './Panels/Panels';
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -24,8 +25,9 @@ jest.mock('amazon-quicksight-embedding-sdk', () => ({ createEmbeddingContext: je
 
 const deferred = () => {
   let resolve;
-  const promise = new Promise((res) => { resolve = res; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
 };
 
 describe('Panorama authenticated embedding', () => {
@@ -36,6 +38,16 @@ describe('Panorama authenticated embedding', () => {
   let get;
   let embedDashboard;
   let embedConsole;
+  let controls;
+
+  const panels = () => (
+    <DashboardTypeProvider>
+      <DashboardTypeContext.Consumer>
+        {(value) => { controls = value; return null; }}
+      </DashboardTypeContext.Consumer>
+      <Panels />
+    </DashboardTypeProvider>
+  );
 
   const render = async (child) => {
     await act(async () => {
@@ -62,6 +74,7 @@ describe('Panorama authenticated embedding', () => {
       handleDataReceived: jest.fn(),
       changeError: jest.fn(),
       changeLoader: jest.fn(),
+      beginLoading: jest.fn(() => jest.fn()),
       changeUserRole: jest.fn(),
       changeHomeMode: jest.fn(),
       userRole: 'READER',
@@ -239,6 +252,107 @@ describe('Panorama authenticated embedding', () => {
     await render(<QuickSightFrame dashboard={dashboard} isActive={false} />);
     await act(async () => pending.resolve({ embedDashboard }));
     expect(embedDashboard).not.toHaveBeenCalled();
+  });
+
+  const dashboardResponse = { data: { body: [{ name: 'one', display_name: 'One', url: 'https://qs.example/one' }] } };
+
+  const delayDashboardLoad = (stage, pending) => {
+    if (stage === 'SDK') {
+      createEmbeddingContext.mockReturnValueOnce(pending.promise);
+    } else if (stage === 'URL') {
+      get.mockResolvedValueOnce({ data: { body: 'READER' } })
+        .mockResolvedValueOnce(dashboardResponse)
+        .mockReturnValueOnce(pending.promise);
+    } else {
+      embedDashboard.mockReturnValueOnce(pending.promise);
+    }
+  };
+
+  test('shows progress through initial SDK, fresh URL and dashboard embedding', async () => {
+    const sdk = deferred();
+    const url = deferred();
+    const embedding = deferred();
+    delayDashboardLoad('SDK', sdk);
+    delayDashboardLoad('URL', url);
+    delayDashboardLoad('embedding', embedding);
+    await render(panels());
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => sdk.resolve({ embedDashboard }));
+    expect(get).toHaveBeenCalledTimes(3);
+    expect(get).toHaveBeenLastCalledWith('https://lms.example/panorama/api/get-embed-url');
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    // Completion of another loader user must not hide a pending frame load.
+    await act(async () => controls.changeLoader(false));
+    expect(controls.loader).toBe(true);
+    await act(async () => url.resolve(dashboardResponse));
+    expect(embedDashboard).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => embedding.resolve({}));
+    expect(host.querySelector('[role="progressbar"]')).toBeNull();
+    expect(controls.loader).toBe(false);
+  });
+
+  test.each(['SDK', 'URL', 'embedding'])(
+    'releases a cancelled %s load without clearing progress on a tab revisit',
+    async (stage) => {
+      const oldLoad = deferred();
+      delayDashboardLoad(stage, oldLoad);
+      await render(panels());
+      expect(controls.loader).toBe(true);
+      await act(async () => controls.changeDashboardType(''));
+      expect(controls.loader).toBe(false);
+
+      const newUrl = deferred();
+      get.mockReturnValueOnce(newUrl.promise);
+      await act(async () => controls.changeDashboardType('One'));
+      expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+      await act(async () => oldLoad.resolve(stage === 'SDK'
+        ? { embedDashboard } : dashboardResponse));
+      expect(controls.loader).toBe(true);
+      expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+      await act(async () => newUrl.resolve(dashboardResponse));
+      expect(controls.loader).toBe(false);
+      expect(controls.error).toBeNull();
+
+      // Cleanup after normal completion must not release the load a second time.
+      await act(async () => controls.changeDashboardType(''));
+      const nextUrl = deferred();
+      get.mockReturnValueOnce(nextUrl.promise);
+      await act(async () => controls.changeDashboardType('One'));
+      expect(controls.loader).toBe(true);
+      await act(async () => nextUrl.resolve(dashboardResponse));
+      expect(controls.loader).toBe(false);
+    },
+  );
+
+  test.each(['SDK', 'URL', 'embedding'])('releases dashboard progress when %s fails', async (stage) => {
+    const pending = deferred();
+    delayDashboardLoad(stage, pending);
+    await render(panels());
+    expect(controls.loader).toBe(true);
+    await act(async () => pending.reject(new Error('Load failed')));
+    expect(controls.loader).toBe(false);
+    expect(host.querySelector('[role="progressbar"]')).toBeNull();
+    expect(host.querySelector('[role="alert"]').textContent).toContain('Load failed');
+  });
+
+  test('dashboard unmount cannot clear the loader of a pending Studio load', async () => {
+    const dashboardUrl = deferred();
+    delayDashboardLoad('URL', dashboardUrl);
+    await render(panels());
+    const studioUrl = deferred();
+    get.mockReturnValueOnce(studioUrl.promise);
+    await act(async () => {
+      controls.changeUserRole('AUTHOR');
+      controls.changeCurrentView('STUDIO');
+    });
+    expect(controls.loader).toBe(true);
+    await act(async () => dashboardUrl.resolve(dashboardResponse));
+    expect(controls.loader).toBe(true);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => studioUrl.resolve({ data: { body: [{ url: 'https://qs.example/studio' }] } }));
+    expect(controls.loader).toBe(false);
   });
 
   test('fetches a fresh URL on delayed first activation and every tab revisit', async () => {
