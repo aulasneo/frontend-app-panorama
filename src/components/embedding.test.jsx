@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { AppContext } from '@edx/frontend-platform/react';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { createEmbeddingContext } from 'amazon-quicksight-embedding-sdk';
@@ -9,6 +10,12 @@ import QuickSightFrame from './QuickSightFrame';
 import QuickSightConsoleFrame from './QuickSightConsoleFrame';
 import Tabs from './Tabs/Tabs';
 import Home from './Home/Home';
+import Panels from './Panels/Panels';
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <span data-testid="location">{location.pathname}</span>;
+};
 
 // Jest hoists this factory before React imports are initialized.
 // eslint-disable-next-line global-require
@@ -18,8 +25,9 @@ jest.mock('amazon-quicksight-embedding-sdk', () => ({ createEmbeddingContext: je
 
 const deferred = () => {
   let resolve;
-  const promise = new Promise((res) => { resolve = res; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
 };
 
 describe('Panorama authenticated embedding', () => {
@@ -30,14 +38,26 @@ describe('Panorama authenticated embedding', () => {
   let get;
   let embedDashboard;
   let embedConsole;
+  let controls;
+
+  const panels = () => (
+    <DashboardTypeProvider>
+      <DashboardTypeContext.Consumer>
+        {(value) => { controls = value; return null; }}
+      </DashboardTypeContext.Consumer>
+      <Panels />
+    </DashboardTypeProvider>
+  );
 
   const render = async (child) => {
     await act(async () => {
       root.render(
         <AppContext.Provider value={app}>
-          <DashboardTypeContext.Provider value={context}>
-            {child}
-          </DashboardTypeContext.Provider>
+          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <DashboardTypeContext.Provider value={context}>
+              {child}
+            </DashboardTypeContext.Provider>
+          </MemoryRouter>
         </AppContext.Provider>,
       );
     });
@@ -54,6 +74,7 @@ describe('Panorama authenticated embedding', () => {
       handleDataReceived: jest.fn(),
       changeError: jest.fn(),
       changeLoader: jest.fn(),
+      beginLoading: jest.fn(() => jest.fn()),
       changeUserRole: jest.fn(),
       changeHomeMode: jest.fn(),
       userRole: 'READER',
@@ -102,6 +123,30 @@ describe('Panorama authenticated embedding', () => {
     context = { ...context, error: message };
     await render(<Home />);
     expect(host.querySelector('[role="alert"]').textContent).toBe(message);
+  });
+
+  test('opens panels only for a message from the active home iframe', async () => {
+    context = { ...context, homeMode: 'SAAS' };
+    await render(<><Home /><LocationProbe /></>);
+    const iframe = host.querySelector('iframe');
+    expect(iframe.src).toBe('https://panorama-home-pages.s3.amazonaws.com/panorama-saas-home.html?navigation=message');
+
+    const sendMessage = async (origin, source, type = 'panorama:navigate-panels') => {
+      await act(async () => {
+        window.dispatchEvent(new MessageEvent('message', {
+          origin,
+          source,
+          data: { type },
+        }));
+      });
+    };
+    await sendMessage('https://untrusted.example', iframe.contentWindow);
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', window);
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', iframe.contentWindow, 'unrelated');
+    expect(host.querySelector('[data-testid="location"]').textContent).toBe('/');
+
+    await sendMessage('https://panorama-home-pages.s3.amazonaws.com', iframe.contentWindow);
+    expect(host.querySelector('[data-testid="location"]').textContent).toBe('/panels');
   });
 
   test.each(['revisit', 'LMS change', 'logout', 'login'])(
@@ -209,26 +254,200 @@ describe('Panorama authenticated embedding', () => {
     expect(embedDashboard).not.toHaveBeenCalled();
   });
 
+  const dashboardResponse = { data: { body: [{ name: 'one', display_name: 'One', url: 'https://qs.example/one' }] } };
+
+  const delayDashboardLoad = (stage, pending) => {
+    if (stage === 'SDK') {
+      createEmbeddingContext.mockReturnValueOnce(pending.promise);
+    } else if (stage === 'URL') {
+      get.mockResolvedValueOnce({ data: { body: 'READER' } })
+        .mockResolvedValueOnce(dashboardResponse)
+        .mockReturnValueOnce(pending.promise);
+    } else {
+      embedDashboard.mockReturnValueOnce(pending.promise);
+    }
+  };
+
+  test('shows progress through initial SDK, fresh URL and dashboard embedding', async () => {
+    const sdk = deferred();
+    const url = deferred();
+    const embedding = deferred();
+    delayDashboardLoad('SDK', sdk);
+    delayDashboardLoad('URL', url);
+    delayDashboardLoad('embedding', embedding);
+    await render(panels());
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => sdk.resolve({ embedDashboard }));
+    expect(get).toHaveBeenCalledTimes(3);
+    expect(get).toHaveBeenLastCalledWith('https://lms.example/panorama/api/get-embed-url');
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    // Completion of another loader user must not hide a pending frame load.
+    await act(async () => controls.changeLoader(false));
+    expect(controls.loader).toBe(true);
+    await act(async () => url.resolve(dashboardResponse));
+    expect(embedDashboard).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => embedding.resolve({}));
+    expect(host.querySelector('[role="progressbar"]')).toBeNull();
+    expect(controls.loader).toBe(false);
+  });
+
+  test.each(['SDK', 'URL', 'embedding'])(
+    'releases a cancelled %s load without clearing progress on a tab revisit',
+    async (stage) => {
+      const oldLoad = deferred();
+      delayDashboardLoad(stage, oldLoad);
+      await render(panels());
+      expect(controls.loader).toBe(true);
+      await act(async () => controls.changeDashboardType(''));
+      expect(controls.loader).toBe(false);
+
+      const newUrl = deferred();
+      get.mockReturnValueOnce(newUrl.promise);
+      await act(async () => controls.changeDashboardType('One'));
+      expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+      await act(async () => oldLoad.resolve(stage === 'SDK'
+        ? { embedDashboard } : dashboardResponse));
+      expect(controls.loader).toBe(true);
+      expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+      await act(async () => newUrl.resolve(dashboardResponse));
+      expect(controls.loader).toBe(false);
+      expect(controls.error).toBeNull();
+
+      // Cleanup after normal completion must not release the load a second time.
+      await act(async () => controls.changeDashboardType(''));
+      const nextUrl = deferred();
+      get.mockReturnValueOnce(nextUrl.promise);
+      await act(async () => controls.changeDashboardType('One'));
+      expect(controls.loader).toBe(true);
+      await act(async () => nextUrl.resolve(dashboardResponse));
+      expect(controls.loader).toBe(false);
+    },
+  );
+
+  test.each(['SDK', 'URL', 'embedding'])('releases dashboard progress when %s fails', async (stage) => {
+    const pending = deferred();
+    delayDashboardLoad(stage, pending);
+    await render(panels());
+    expect(controls.loader).toBe(true);
+    await act(async () => pending.reject(new Error('Load failed')));
+    expect(controls.loader).toBe(false);
+    expect(host.querySelector('[role="progressbar"]')).toBeNull();
+    expect(host.querySelector('[role="alert"]').textContent).toContain('Load failed');
+  });
+
+  test('dashboard unmount cannot clear the loader of a pending Studio load', async () => {
+    const dashboardUrl = deferred();
+    delayDashboardLoad('URL', dashboardUrl);
+    await render(panels());
+    const studioUrl = deferred();
+    get.mockReturnValueOnce(studioUrl.promise);
+    await act(async () => {
+      controls.changeUserRole('AUTHOR');
+      controls.changeCurrentView('STUDIO');
+    });
+    expect(controls.loader).toBe(true);
+    await act(async () => dashboardUrl.resolve(dashboardResponse));
+    expect(controls.loader).toBe(true);
+    expect(host.querySelector('[role="progressbar"]')).not.toBeNull();
+    await act(async () => studioUrl.resolve({ data: { body: [{ url: 'https://qs.example/studio' }] } }));
+    expect(controls.loader).toBe(false);
+  });
+
+  test('fetches a fresh URL on delayed first activation and every tab revisit', async () => {
+    const dashboard = { name: 'one', url: 'https://qs.example/expired' };
+    await render(<QuickSightFrame dashboard={dashboard} isActive={false} />);
+    expect(get).not.toHaveBeenCalled();
+    get.mockResolvedValueOnce({
+      data: {
+        body: [
+          { name: 'other', url: 'https://qs.example/wrong-dashboard' },
+          { name: 'one', url: 'https://qs.example/fresh' },
+        ],
+      },
+    });
+    await render(<QuickSightFrame dashboard={dashboard} isActive />);
+    expect(embedDashboard.mock.calls[0][0].url).toBe('https://qs.example/fresh');
+    await render(<QuickSightFrame dashboard={dashboard} isActive={false} />);
+    get.mockResolvedValueOnce({ data: { body: [{ name: 'one', url: 'https://qs.example/fresh-again' }] } });
+    await render(<QuickSightFrame dashboard={dashboard} isActive />);
+    expect(embedDashboard.mock.calls[1][0].url).toBe('https://qs.example/fresh-again');
+    expect(get.mock.calls).toEqual([
+      ['https://lms.example/panorama/api/get-embed-url'],
+      ['https://lms.example/panorama/api/get-embed-url'],
+    ]);
+  });
+
+  test.each(['switch', 'unmount', 'user', 'LMS'])(
+    'ignores a stale dashboard URL response after %s',
+    async (transition) => {
+      const pending = deferred();
+      get.mockReturnValueOnce(pending.promise);
+      const dashboard = { name: 'one', url: 'https://qs.example/expired' };
+      await render(<QuickSightFrame dashboard={dashboard} isActive />);
+      if (transition === 'user') {
+        app = { ...app, authenticatedUser: { userId: 2 } };
+      } else if (transition === 'LMS') {
+        app = { ...app, config: { LMS_BASE_URL: 'https://new-lms.example' } };
+      }
+      get.mockResolvedValue({ data: { body: [{ name: 'one', url: 'https://qs.example/current' }] } });
+      await render(transition === 'unmount' ? null
+        : <QuickSightFrame dashboard={dashboard} isActive={transition !== 'switch'} />);
+      await act(async () => pending.resolve({ data: { body: [{ name: 'one', url: 'https://qs.example/stale' }] } }));
+      if (transition === 'user' || transition === 'LMS') {
+        expect(get).toHaveBeenLastCalledWith(`${app.config.LMS_BASE_URL}/panorama/api/get-embed-url`);
+        expect(embedDashboard).toHaveBeenCalledTimes(1);
+        expect(embedDashboard.mock.calls[0][0].url).toBe('https://qs.example/current');
+      } else {
+        expect(embedDashboard).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  test.each([401, 403, 500])('does not reuse a saved URL when renewal fails with %s', async (status) => {
+    get.mockRejectedValue(Object.assign(new Error('Request failed'), { response: { status } }));
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/saved' }} isActive />);
+    expect(embedDashboard).not.toHaveBeenCalled();
+    expect(context.changeError.mock.calls.at(-1)[0]).toMatch(/session has expired|do not have access|could not load/);
+  });
+
+  test('does not embed a dashboard removed from the refreshed grants', async () => {
+    get.mockResolvedValue({ data: { body: [] } });
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/saved' }} isActive />);
+    expect(embedDashboard).not.toHaveBeenCalled();
+    expect(context.changeError).toHaveBeenLastCalledWith(expect.stringContaining('no longer available'));
+  });
+
   test('isolates late SDK writes from a replacement dashboard and remounts safely', async () => {
+    get.mockResolvedValue({
+      data: {
+        body: [
+          { name: 'one', url: 'https://qs.example/old' },
+          { name: 'two', url: 'https://qs.example/new' },
+        ],
+      },
+    });
     const pending = deferred();
     embedDashboard.mockImplementationOnce(({ container }) => pending.promise.then(() => {
       container.append(document.createElement('iframe'));
     }));
     await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/old' }} isActive />);
     const oldContainer = embedDashboard.mock.calls[0][0].container;
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/new' }} isActive />);
+    await render(<QuickSightFrame dashboard={{ name: 'two' }} isActive />);
     await act(async () => pending.resolve());
     expect(oldContainer.isConnected).toBe(false);
     expect(host.querySelector('iframe')).toBeNull();
     expect(embedDashboard).toHaveBeenCalledTimes(2);
     await render(null);
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/new' }} isActive />);
+    await render(<QuickSightFrame dashboard={{ name: 'two' }} isActive />);
     expect(embedDashboard).toHaveBeenCalledTimes(3);
   });
 
   test('passes student parameters as data and reports SDK content errors', async () => {
     context.userRole = 'STUDENT';
-    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/#p.userId=7&p.lms=school' }} isActive />);
+    get.mockResolvedValue({ data: { body: [{ name: 'one', url: 'https://qs.example/#p.userId=7&p.lms=school' }] } });
+    await render(<QuickSightFrame dashboard={{ name: 'one', url: 'https://qs.example/#p.userId=old' }} isActive />);
     const options = embedDashboard.mock.calls[0][1];
     expect(options.parameters).toEqual([{ Name: 'userId', Values: ['7'] }, { Name: 'lms', Values: ['school'] }]);
     options.onMessage({ eventName: 'ERROR_OCCURRED', message: { errorCode: 'SESSION_EXPIRED' } });
